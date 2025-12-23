@@ -1,0 +1,11 @@
+name: tf 
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python >= 3.12,<3.13
+  - terraform >=1.14,<2 # [osx and arm64]
+  - go-task >=3.45,<4
+
+variables:
+  CONDA_SUBDIR: osx-arm64

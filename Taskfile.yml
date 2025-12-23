@@ -1,0 +1,47 @@
+version: '3'
+
+env:
+  AWS_PROFILE: joe-dev
+  TF_WORKSPACE:
+    sh: terraform workspace show 2>/dev/null || echo "default"
+
+tasks:
+  create-backend:
+    desc: "Create backend.hcl file with proper configuration"
+    dir: deployment
+    vars:
+      AWS_ACCOUNT_ID:
+        sh: aws sts get-caller-identity --query Account --output text
+      AWS_REGION:
+        sh: aws configure get region --profile {{.AWS_PROFILE}}
+    cmds:
+      - |
+        cat > backend.hcl <<EOF
+        bucket  = "terraform-state-{{.AWS_ACCOUNT_ID}}"
+        key     = "github-actions-runners/terraform.tfstate/{{.TF_WORKSPACE}}"
+        region  = "{{.AWS_REGION}}"
+        encrypt = true
+        profile = "{{.AWS_PROFILE}}"
+
+        # Remote state locking table
+        dynamodb_table = "terraform-state-locks"
+        EOF
+      - echo "Created deployment/backend.hcl with bucket terraform-state-{{.AWS_ACCOUNT_ID}}"
+
+  init:
+    desc: "Initialize Terraform with backend configuration"
+    dir: deployment
+    cmds:
+      - terraform init -backend-config=backend.hcl
+
+  plan:
+    desc: "Run Terraform plan"
+    dir: deployment
+    cmds:
+      - terraform plan
+
+  apply:
+    desc: "Run Terraform apply"
+    dir: deployment
+    cmds:
+      - terraform apply
