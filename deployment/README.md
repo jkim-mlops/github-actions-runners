@@ -21,6 +21,7 @@ No outputs.
 
 | Name | Source | Version |
 |------|--------|---------|
+| <a name="module_docker"></a> [docker](#module\_docker) | git@github.com:jkim-mlops/terraform-modules.git//modules/docker | 0.1.0 |
 | <a name="module_ecs"></a> [ecs](#module\_ecs) | git@github.com:jkim-mlops/terraform-modules.git//modules/ecs | 0.1.0 |
 | <a name="module_vpc"></a> [vpc](#module\_vpc) | git@github.com:jkim-mlops/terraform-modules.git//modules/vpc | 0.1.0 |
 
@@ -29,6 +30,7 @@ No outputs.
 | Name | Version |
 |------|---------|
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.27.0 |
+| <a name="requirement_docker"></a> [docker](#requirement\_docker) | ~> 3.0 |
 
 ## Providers
 

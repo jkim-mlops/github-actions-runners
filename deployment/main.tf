@@ -21,6 +21,14 @@ module "vpc" {
   subnets    = var.subnets
 }
 
+module "docker" {
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.1.0"
+
+  image_name    = local.name
+  image_tag     = "0.1.0"
+  build_context = "./docker"
+}
+
 module "ecs" {
   source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=0.1.0"
 
@@ -32,5 +40,22 @@ module "ecs" {
   instance_type   = "m6g.large"
   logging_enabled = true
   aws_region      = data.aws_region.this.id
-  tasks = {}
+  tasks = {
+    "${module.docker.image_name}" = {
+      container_definition = {
+        name      = module.docker.image_name
+        image     = "${module.docker.ecr_repo.repository_url}:${module.docker.image_tag}"
+        cpu       = 1024 * 2
+        memory    = 1048 * 4
+        essential = true
+        environment = [
+          {
+            name  = "AWS_SDK_LOAD_CONFIG"
+            value = true
+          },
+        ]
+      }
+      iam = {}
+    }
+  }
 }
