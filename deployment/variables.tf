@@ -1,9 +1,3 @@
-variable "name" {
-  description = "The name used for identifying resources."
-  type        = string
-  default     = "gh-actions-runners"
-}
-
 variable "cidr_block" {
   description = "The CIDR block for the VPC."
   type        = string
