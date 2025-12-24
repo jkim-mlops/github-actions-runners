@@ -1,3 +1,1 @@
-provider "aws" {
-	profile = "joe-dev"
-}
+provider "aws" {}
