@@ -1,3 +1,12 @@
+/**
+* # deployment
+*
+* End-to-end deployment of Github Actions runners.
+*
+* ## Features
+* * Support for secure, cost-efficient container builds with **kaniko**.
+*/
+
 data "aws_region" "this" {}
 
 module "vpc" {

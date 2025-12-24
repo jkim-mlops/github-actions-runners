@@ -1,0 +1,8 @@
+formatter: markdown
+
+content: |-
+  {{ .Header }}
+
+  {{ .Inputs }}
+
+  {{ .Outputs }}
