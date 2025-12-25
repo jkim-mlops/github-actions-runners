@@ -14,6 +14,9 @@ locals {
 
 data "aws_region" "this" {}
 
+# The GitHub provider doesn't support creating apps.
+# You are expected to have created the app and store the parameters beforehand.
+
 data "aws_ssm_parameter" "github_app_client_id" {
   name = local.github_app_client_id_param_name 
   with_decryption = true

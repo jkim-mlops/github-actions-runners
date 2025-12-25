@@ -1,0 +1,7 @@
+name: webhook
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python >=3.12,<3.13
+  - aws-lambda-powertools
