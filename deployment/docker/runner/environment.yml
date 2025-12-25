@@ -1,0 +1,11 @@
+name: runner
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python >=3.13,<3.14
+
+  - boto3 >=1.4,<2
+  - pydantic-settings >=2,<3
+  - pyjwt >=2.10,<3
+  - pygithub >=2.8,<3
