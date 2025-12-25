@@ -53,8 +53,9 @@ def verify_signature(
         raise ValueError("Request signatures didn't match!")
 
 
-@app.get("/hello")
-def hello():
+@app.get("/webhook")
+def handle_github_webhook():
+    payload = app.current_event.json_body
     return {
         "message": "hello world"
     }  # Powertools automatically handles the response format
