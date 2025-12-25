@@ -8,9 +8,21 @@
 */
 locals {
   name = "gh-actions-runners-${terraform.workspace}"
+  github_app_client_id_param_name = "/github/apps/${var.github_app_name}/client-id"
+  github_app_private_key_param_name = "/github/apps/${var.github_app_name}/private-key"
 }
 
 data "aws_region" "this" {}
+
+data "aws_ssm_parameter" "github_app_client_id" {
+  name = local.github_app_client_id_param_name 
+  with_decryption = true
+}
+
+data "aws_ssm_parameter" "github_app_private_key" {
+  name            = local.github_app_private_key_param_name
+  with_decryption = true
+}
 
 module "vpc" {
   source = "git@github.com:jkim-mlops/terraform-modules.git//modules/vpc?ref=0.1.0"
@@ -53,9 +65,51 @@ module "ecs" {
             name  = "AWS_SDK_LOAD_CONFIG"
             value = true
           },
+          {
+            name  = "GITHUB_APP_CLIENT_ID_PARAM_NAME"
+            value = local.github_app_client_id_param_name
+          },
+          {
+            name  = "GITHUB_APP_PRIVATE_KEY_PARAM_NAME"
+            value = local.github_app_private_key_param_name
+          }
         ]
       }
-      iam = {}
+      iam = {
+        ecrPermissions = {
+          actions = [
+            "ecr:GetAuthorizationToken",
+            "ecr:BatchCheckLayerAvailability",
+            "ecr:PutImage",
+            "ecr:InitiateLayerUpload",
+            "ecr:UploadLayerPart",
+            "ecr:CompleteLayerUpload",
+            "ecr:CreateRepository",
+            "ecr:DescribeRepositories"
+          ]
+          resources = ["*"]
+        }
+        ssmPermissions = {
+          actions = [
+            "ssm:GetParameter",
+            "ssm:GetParameters",
+            "ssm:GetParametersByPath"
+          ]
+          resources = [
+            data.aws_ssm_parameter.github_app_client_id.arn,
+            data.aws_ssm_parameter.github_app_private_key.arn
+          ]
+        }
+        kmsPermissions = {
+          actions = [
+            "kms:Decrypt"
+          ]
+          resources = [
+            data.aws_ssm_parameter.github_app_client_id.arn,
+            data.aws_ssm_parameter.github_app_private_key.arn
+          ]
+        }
+      }
     }
   }
 }

@@ -3,6 +3,11 @@ variable "cidr_block" {
   type        = string
 }
 
+variable "github_app_name" {
+  description = "value"
+  type = string
+}
+
 variable "subnets" {
   description = "Map of subnet configurations."
   type = map(object({
