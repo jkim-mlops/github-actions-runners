@@ -40,8 +40,8 @@ ENV PATH="/opt/conda/envs/runner/bin:${PATH}"
 WORKDIR /runner
 
 # Copy scripts
-COPY gh-jwt.py /runner/gh-jwt.py
+COPY setup-runner.py /runner/setup-runner.py
 COPY fetch-runner.sh /runner/fetch-runner.sh
-RUN chmod +x /runner/gh-jwt.py /runner/fetch-runner.sh
+RUN chmod +x /runner/setup-runner.py /runner/fetch-runner.sh
 
-CMD ["python3", "/runner/gh-jwt.py"]
+CMD ["python3", "/runner/setup-runner.py"]
