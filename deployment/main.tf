@@ -42,7 +42,7 @@ module "docker" {
 }
 
 module "ecs" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=0.1.0"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=0.1.1"
 
   name            = local.name
   cidr_blocks     = [module.vpc.vpc_cidr_block]
