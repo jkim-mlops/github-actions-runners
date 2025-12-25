@@ -1,3 +1,6 @@
+# Docker related
+actions-runner
+
 # Terraform backend config
 backend.hcl
 
