@@ -3,6 +3,9 @@
         "deployment",
         ".vscode",
         "docker",
-        "main.tf"
+        "main.tf",
+        "lambda.py",
+        "Dockerfile",
+        "runner"
     ]
 }
