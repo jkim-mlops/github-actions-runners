@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="GITHUB_")
+    model_config = SettingsConfigDict(env_prefix="GITHUB_", env_file=".env")
 
     app_private_key_param: str = Field(
         default=...,
@@ -24,6 +24,12 @@ class Settings(BaseSettings):
         default=..., description="Repository owner (organization or user)"
     )
     repo_name: str = Field(default=..., description="Repository name")
+    runner_base_dir: str = Field(
+        default="/runner", description="Base directory for runner files"
+    )
+    test_mode: bool = Field(
+        default=False, description="Run in test mode (skip runner setup)"
+    )
 
     @property
     def runner_url(self) -> str:
@@ -61,27 +67,45 @@ gi = GithubIntegration(auth=auth)
 installation_id_int = int(settings.installation_id)
 installation_auth_token = gi.get_access_token(installation_id_int)
 
+print(f"Got installation token for installation {installation_id_int}")
+
 # Get runner registration token using the API directly
 headers = {
     "Authorization": f"Bearer {installation_auth_token.token}",
     "Accept": "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
 }
-response = requests.post(
-    f"https://api.github.com/repos/{settings.repo_owner}/{settings.repo_name}/actions/runners/registration-token",
-    headers=headers,
-)
+url = f"https://api.github.com/repos/{settings.repo_owner}/{settings.repo_name}/actions/runners/registration-token"
+print(f"Requesting runner token from: {url}")
+response = requests.post(url, headers=headers)
+
+if response.status_code != 201:
+    print(f"Error response: {response.status_code}")
+    print(f"Response body: {response.text}")
+
 response.raise_for_status()
 runner_token = response.json()["token"]
+print("Successfully obtained runner registration token")
+
+if settings.test_mode:
+    print("Test mode enabled - skipping runner setup")
+    print("Runner would be configured with:")
+    print(f"  URL: {settings.runner_url}")
+    print(f"  Name: {settings.runner_name}")
+    exit(0)
 
 # Fetch and setup runner if not already present
-if not os.path.isfile("/runner/actions-runner/config.sh"):
+runner_config_path = os.path.join(
+    settings.runner_base_dir, "actions-runner", "config.sh"
+)
+if not os.path.isfile(runner_config_path):
     print("Fetching GitHub Actions runner...")
-    os.chdir("/runner")
-    result = subprocess.run(["/runner/fetch-runner.sh"], check=True)
+    os.chdir(settings.runner_base_dir)
+    result = subprocess.run([f"{settings.runner_base_dir}/fetch-runner.sh"], check=True)
 
 # Configure runner
-os.chdir("/runner/actions-runner")
+runner_dir = os.path.join(settings.runner_base_dir, "actions-runner")
+os.chdir(runner_dir)
 print("Configuring runner...")
 subprocess.run(
     [

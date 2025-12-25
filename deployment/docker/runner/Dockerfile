@@ -3,8 +3,8 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV AWS_SDK_LOAD_CONFIG=true
 ENV RUNNER_VERSION=2.330.0
-ENV RUNNER_ARCH=linux-x64
-ENV RUNNER_CHECKSUM=1f3e2f97e4e4e2e4d6f8f8c6c6d6e4e4f6f8f8c6c6d6e4e4f6f8f8c6c6d6e4e4
+ENV RUNNER_ARCH=linux-arm64
+ENV RUNNER_CHECKSUM=5d13b77d4f8c8d432e590ff75c4f299c9590c3835fa744c2e2c36e5c6d4ea63e
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
@@ -15,14 +15,13 @@ RUN apt-get update && apt-get install -y \
     libicu70 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Kaniko
-RUN wget -O /usr/local/bin/executor https://github.com/GoogleContainerTools/kaniko/releases/latest/download/executor-amd64 && \
-    chmod +x /usr/local/bin/executor
+# Copy Kaniko executor from official multi-arch image
+COPY --from=gcr.io/kaniko-project/executor:latest /kaniko/executor /usr/local/bin/executor
 
-# Install miniconda
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
-    bash /tmp/miniconda.sh -b -p /opt/conda && \
-    rm /tmp/miniconda.sh && \
+# Install miniforge (conda-forge based, no ToS issues)
+RUN wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-aarch64.sh -O /tmp/miniforge.sh && \
+    bash /tmp/miniforge.sh -b -p /opt/conda && \
+    rm /tmp/miniforge.sh && \
     /opt/conda/bin/conda clean -afy
 
 # Add conda to PATH
