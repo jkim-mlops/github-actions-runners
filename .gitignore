@@ -1,3 +1,6 @@
+# Local environment
+.env
+
 # Docker related
 actions-runner
 
