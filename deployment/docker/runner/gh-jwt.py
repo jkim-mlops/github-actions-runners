@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 import subprocess
 
@@ -13,11 +12,17 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="GITHUB_")
 
     app_private_key_param: str = Field(
-        default=..., description="SSM parameter name containing the GitHub App private key"
+        default=...,
+        description="SSM parameter name containing the GitHub App private key",
     )
-    app_client_id_param: str = Field(default=..., description="SSM parameter name containing the GitHub App client ID")
+    app_client_id_param: str = Field(
+        default=...,
+        description="SSM parameter name containing the GitHub App client ID",
+    )
     installation_id: str = Field(default=..., description="GitHub App installation ID")
-    repo_owner: str = Field(default=..., description="Repository owner (organization or user)")
+    repo_owner: str = Field(
+        default=..., description="Repository owner (organization or user)"
+    )
     repo_name: str = Field(default=..., description="Repository name")
 
     @property
@@ -37,11 +42,15 @@ settings = Settings()
 ssm = boto3.client("ssm")
 
 # Get private key from SSM
-private_key_response = ssm.get_parameter(Name=settings.app_private_key_param, WithDecryption=True)
+private_key_response = ssm.get_parameter(
+    Name=settings.app_private_key_param, WithDecryption=True
+)
 private_key_content = private_key_response["Parameter"]["Value"]
 
 # Get client ID from SSM
-client_id_response = ssm.get_parameter(Name=settings.app_client_id_param, WithDecryption=True)
+client_id_response = ssm.get_parameter(
+    Name=settings.app_client_id_param, WithDecryption=True
+)
 client_id = client_id_response["Parameter"]["Value"]
 
 # Authenticate as GitHub App
@@ -70,8 +79,6 @@ if not os.path.isfile("/runner/actions-runner/config.sh"):
     print("Fetching GitHub Actions runner...")
     os.chdir("/runner")
     result = subprocess.run(["/runner/fetch-runner.sh"], check=True)
-
-# Configure runner URL
 
 # Configure runner
 os.chdir("/runner/actions-runner")
