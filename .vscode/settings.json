@@ -2,6 +2,7 @@
     "conventionalCommits.scopes": [
         "deployment",
         ".vscode",
-        "docker"
+        "docker",
+        "main.tf"
     ]
 }
