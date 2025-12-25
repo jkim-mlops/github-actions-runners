@@ -6,6 +6,7 @@
         "main.tf",
         "lambda.py",
         "Dockerfile",
-        "runner"
+        "runner",
+        ".gitignore"
     ]
 }
