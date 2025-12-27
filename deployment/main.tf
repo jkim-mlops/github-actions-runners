@@ -1,10 +1,37 @@
 data "aws_region" "this" {}
 
+locals {
+  github_app_name = "gh-actions-jkim-mlops"
+}
+
+# The GitHub provider doesn't support creating apps.
+# You are expected to have created the app and store the parameters beforehand.
+
+data "aws_ssm_parameter" "github_app_client_id" {
+  name            = "/github/apps/${local.github_app_name}/client-id"
+  with_decryption = true
+}
+
+data "aws_ssm_parameter" "github_app_private_key" {
+  name            = "/github/apps/${local.github_app_name}/private-key"
+  with_decryption = true
+}
+
 module "main" {
   source = ".."
 
-  cidr_block      = "10.0.0.0/16"
-  github_app_name = "gh-actions-jkim-mlops"
+  architecture                      = "arm64"
+  cidr_block                        = "10.0.0.0/16"
+  cpu                               = 1024 * 2
+  github_app_client_id_param_name   = data.aws_ssm_parameter.github_app_client_id.name
+  github_app_private_key_param_name = data.aws_ssm_parameter.github_app_private_key.name
+  github_app_ssm_param_arns = [
+    data.aws_ssm_parameter.github_app_client_id.arn,
+    data.aws_ssm_parameter.github_app_private_key.arn
+  ]
+  instance_type                     = "m6g.large"
+  memory                            = 1048 * 4
+  name = "gh-actions-runners-${terraform.workspace}"
   subnets = {
     a-public = {
       availability_zone = "${data.aws_region.this.id}a"
