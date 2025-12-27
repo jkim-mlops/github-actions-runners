@@ -8,6 +8,11 @@ variable "github_app_name" {
   type = string
 }
 
+variable "region" {
+  description = "value"
+  type = string
+}
+
 variable "subnets" {
   description = "Map of subnet configurations."
   type = map(object({

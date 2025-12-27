@@ -11,6 +11,7 @@
         "images",
         "api_gateway",
         "outputs.tf",
-        "lambda"
+        "lambda",
+        "github"
     ]
 }
