@@ -16,8 +16,6 @@ module "vpc" {
   subnets    = var.subnets
 }
 
-
-
 module "runner" {
   source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.1.0"
 
@@ -109,4 +107,28 @@ module "lambda" {
   ecs_task_definition_arns = module.ecs.ecs_task_definition_arns
   ecs_task_execution_role_arn = module.ecs.ecs_task_execution_role_arn
   ecs_task_role_arns = module.ecs.ecs_task_role_arns
+}
+
+module "api_gateway" {
+  source = "./modules/api_gateway"
+
+  name                 = "${var.name}-webhook"
+  stage_name           = "prod"
+  lambda_invoke_arn    = module.lambda.lambda.invoke_arn
+  lambda_function_name = module.lambda.lambda.function_name
+}
+
+# Create webhook for repository
+resource "github_repository_webhook" "this" {
+  repository = var.repository_name
+  active     = true
+
+  configuration {
+    url          = module.api_gateway.url
+    content_type = "json"
+    secret       = module.lambda.webhook_secret
+    insecure_ssl = false
+  }
+
+  events = var.webhook_events
 }

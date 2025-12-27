@@ -2,6 +2,13 @@ data "aws_region" "this" {}
 
 locals {
   github_app_name = "gh-actions-jkim-mlops"
+  github_owner    = "jkim-mlops"
+}
+
+# You should have a scoped token for creating webhooks already created in ssm.
+
+data "aws_ssm_parameter" "github_token" {
+    name = "/github/deployments/webhook/token"
 }
 
 # The GitHub provider doesn't support creating apps.
@@ -29,7 +36,9 @@ module "main" {
   ]
   instance_type                     = "m6g.large"
   memory                            = 1048 * 4
-  name = "gh-actions-${terraform.workspace}"
+  name                              = "gh-actions-${terraform.workspace}"
+  repository_name                   = "github-actions-runners"
+  webhook_events                    = ["workflow_job"]
   subnets = {
     a-public = {
       availability_zone = "${data.aws_region.this.id}a"

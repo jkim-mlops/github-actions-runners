@@ -9,3 +9,8 @@ provider "docker" {
     password = data.aws_ecr_authorization_token.this.password
   }
 }
+
+provider "github" {
+  token = data.aws_ssm_parameter.github_token.value
+  owner = local.github_owner
+}

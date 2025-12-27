@@ -48,6 +48,11 @@ variable "region" {
   type = string
 }
 
+variable "repository_name" {
+  description = "Repository name to create webhook for"
+  type        = string
+}
+
 variable "subnets" {
   description = "Map of subnet configurations."
   type = map(object({
@@ -55,4 +60,10 @@ variable "subnets" {
     cidr_block        = string
     public            = bool
   }))
+}
+
+variable "webhook_events" {
+  description = "List of events that should trigger the webhook"
+  type        = list(string)
+  default     = ["workflow_job"]
 }
