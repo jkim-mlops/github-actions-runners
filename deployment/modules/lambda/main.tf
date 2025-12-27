@@ -63,6 +63,10 @@ resource "aws_lambda_function" "this" {
     command     = ["lambda.handler"]
   }
 
+  environment {
+    variables = var.environment_variables
+  }
+
   memory_size = 512
   timeout     = 30
 

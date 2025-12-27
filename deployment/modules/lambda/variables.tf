@@ -22,3 +22,9 @@ variable "ecs_task_role_arns" {
     description = "List of ECS task role ARNs that Lambda can pass"
     type = list(string)
 }
+
+variable "environment_variables" {
+    description = "Map of environment variables to pass to the Lambda function"
+    type        = map(string)
+    default     = {}
+}
