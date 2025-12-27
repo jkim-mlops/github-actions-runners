@@ -70,6 +70,7 @@ installation_auth_token = gi.get_access_token(installation_id_int)
 print(f"Got installation token for installation {installation_id_int}")
 
 # Get runner registration token using the API directly
+# TODO: Refactor this call to use the pygithub client if it becomes available in the future.
 headers = {
     "Authorization": f"Bearer {installation_auth_token.token}",
     "Accept": "application/vnd.github+json",
