@@ -8,6 +8,8 @@
         "Dockerfile",
         "runner",
         ".gitignore",
-        "images"
+        "images",
+        "api_gateway",
+        "outputs.tf"
     ]
 }
