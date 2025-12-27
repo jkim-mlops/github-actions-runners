@@ -8,9 +8,9 @@ variable "github_owner" {
   type        = string
 }
 
-variable "repository_names" {
-  description = "List of repository names to create webhooks for"
-  type        = list(string)
+variable "repository_name" {
+  description = "Repository name to create webhook for"
+  type        = string
 }
 
 variable "webhook_url" {
@@ -36,8 +36,8 @@ variable "webhook_active" {
   default     = true
 }
 
-variable "secret_length" {
-  description = "Length of the generated webhook secret"
-  type        = number
-  default     = 32
+variable "webhook_secret" {
+  description = "The webhook secret for validating webhook payloads"
+  type        = string
+  sensitive   = true
 }

@@ -4,28 +4,15 @@ data "aws_ssm_parameter" "github_token" {
   with_decryption = true
 }
 
-# Generate a random alphanumeric secret for each repository
-resource "random_string" "this" {
-  for_each = toset(var.repository_names)
-
-  length  = var.secret_length
-  special = false
-  upper   = true
-  lower   = true
-  numeric = true
-}
-
-# Create webhook for each repository
+# Create webhook for repository
 resource "github_repository_webhook" "this" {
-  for_each = toset(var.repository_names)
-
-  repository = each.value
+  repository = var.repository_name
   active     = var.webhook_active
 
   configuration {
     url          = var.webhook_url
     content_type = var.webhook_content_type
-    secret       = random_string.this[each.key].result
+    secret       = var.webhook_secret
     insecure_ssl = false
   }
 

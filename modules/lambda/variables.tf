@@ -28,3 +28,9 @@ variable "environment_variables" {
     type        = map(string)
     default     = {}
 }
+
+variable "webhook_secret_length" {
+  description = "Length of the generated webhook secret"
+  type        = number
+  default     = 32
+}

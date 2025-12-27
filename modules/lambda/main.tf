@@ -37,6 +37,15 @@ data "aws_iam_policy_document" "ecs_run_task" {
   }
 }
 
+# Generate a random alphanumeric secret for webhook
+resource "random_string" "webhook_secret" {
+  length  = var.webhook_secret_length
+  special = false
+  upper   = true
+  lower   = true
+  numeric = true
+}
+
 resource "aws_iam_role" "this" {
   name               = "${var.name}-role"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json

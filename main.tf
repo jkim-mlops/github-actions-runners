@@ -16,12 +16,14 @@ module "vpc" {
   subnets    = var.subnets
 }
 
-module "docker" {
+
+
+module "runner" {
   source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.1.0"
 
-  image_name    = var.name
+  image_name    = "${var.name}-runner"
   image_tag     = "0.1.0"
-  build_context = "./docker"
+  build_context = "./images/runner"
 }
 
 module "ecs" {
@@ -36,10 +38,10 @@ module "ecs" {
   logging_enabled = true
   aws_region      = data.aws_region.this.id
   tasks = {
-    "${module.docker.image_name}" = {
+    "${module.runner.image_name}" = {
       container_definition = {
-        name      = module.docker.image_name
-        image     = "${module.docker.ecr_repo.repository_url}:${module.docker.image_tag}"
+        name      = module.runner.image_name
+        image     = "${module.runner.ecr_repo.repository_url}:${module.runner.image_tag}"
         cpu       = var.cpu
         memory    = var.memory
         essential = true
@@ -89,4 +91,22 @@ module "ecs" {
       }
     }
   }
+}
+
+module "webhook" {
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.1.0"
+
+  image_name    = "${var.name}-webhook"
+  image_tag     = "0.1.0"
+  build_context = "./images/webhook"
+}
+
+module "lambda" {
+  source = "./modules/lambda"
+
+  name = "${var.name}-webhook"
+  image_uri = "${module.webhook.ecr_repo.repository_url}:${module.webhook.image_tag}"
+  ecs_task_definition_arns = module.ecs.ecs_task_definition_arns
+  ecs_task_execution_role_arn = module.ecs.ecs_task_execution_role_arn
+  ecs_task_role_arns = module.ecs.ecs_task_role_arns
 }

@@ -9,12 +9,10 @@ locals {
 
 data "aws_ssm_parameter" "github_app_client_id" {
   name            = "/github/apps/${local.github_app_name}/client-id"
-  with_decryption = true
 }
 
 data "aws_ssm_parameter" "github_app_private_key" {
   name            = "/github/apps/${local.github_app_name}/private-key"
-  with_decryption = true
 }
 
 module "main" {
@@ -31,7 +29,7 @@ module "main" {
   ]
   instance_type                     = "m6g.large"
   memory                            = 1048 * 4
-  name = "gh-actions-runners-${terraform.workspace}"
+  name = "gh-actions-${terraform.workspace}"
   subnets = {
     a-public = {
       availability_zone = "${data.aws_region.this.id}a"
