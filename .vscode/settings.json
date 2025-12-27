@@ -10,6 +10,7 @@
         ".gitignore",
         "images",
         "api_gateway",
-        "outputs.tf"
+        "outputs.tf",
+        "lambda"
     ]
 }
