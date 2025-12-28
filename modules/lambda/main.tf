@@ -93,6 +93,20 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_security_group" "lambda" {
+  name        = "${var.name}-lambda-sg"
+  description = "Security group for Lambda function ${var.name}"
+  vpc_id      = var.vpc_id
+
+  # Egress rule: allow all outbound
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_lambda_function" "this" {
   function_name = var.name
   role          = aws_iam_role.this.arn
@@ -116,5 +130,10 @@ resource "aws_lambda_function" "this" {
   timeout     = 30
 
   architectures = ["arm64"] # Graviton support for better price/performance
+
+  vpc_config {
+    subnet_ids         = var.vpc_subnet_ids
+    security_group_ids = [aws_security_group.lambda.id]
+  }
 }
 

@@ -1,3 +1,14 @@
+variable "vpc_subnet_ids" {
+  description = "List of subnet IDs for Lambda VPC config."
+  type        = list(string)
+  default     = []
+}
+
+variable "vpc_id" {
+  description = "VPC ID for Lambda security group."
+  type        = string
+  default     = ""
+}
 variable "name" {
   description = "value"
   type        = string
