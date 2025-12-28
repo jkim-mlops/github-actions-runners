@@ -8,22 +8,22 @@ locals {
 # You should have a scoped token for creating webhooks already created in ssm.
 
 data "aws_ssm_parameter" "github_token" {
-    name = "/github/deployments/webhook/token"
+  name = "/github/deployments/webhook/token"
 }
 
 # The GitHub provider doesn't support creating apps.
 # You are expected to have created the app and store the parameters beforehand.
 
 data "aws_ssm_parameter" "github_app_client_id" {
-  name            = "/github/apps/${local.github_app_name}/client-id"
+  name = "/github/apps/${local.github_app_name}/client-id"
 }
 
 data "aws_ssm_parameter" "github_app_private_key" {
-  name            = "/github/apps/${local.github_app_name}/private-key"
+  name = "/github/apps/${local.github_app_name}/private-key"
 }
 
 module "main" {
-  source = ".."
+  source = "./.."
 
   architecture                      = "arm64"
   cidr_block                        = "10.0.0.0/16"
@@ -34,12 +34,13 @@ module "main" {
     data.aws_ssm_parameter.github_app_client_id.arn,
     data.aws_ssm_parameter.github_app_private_key.arn
   ]
-  instance_type                     = "m6g.large"
-  memory                            = 1048 * 4
-  name                              = "gh-actions-${terraform.workspace}"
-  repository_name                   = "github-actions-runners"
-  stage_name                        = terraform.workspace
-  webhook_events                    = ["workflow_job"]
+  instance_type   = "m6g.large"
+  memory          = 1048 * 4
+  name            = "gh-actions-${terraform.workspace}"
+  region          = data.aws_region.this.id
+  repository_name = "github-actions-runners"
+  stage_name      = terraform.workspace
+  webhook_events  = ["workflow_job"]
   subnets = {
     a-public = {
       availability_zone = "${data.aws_region.this.id}a"

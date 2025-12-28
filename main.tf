@@ -11,7 +11,7 @@ module "vpc" {
   source = "git@github.com:jkim-mlops/terraform-modules.git//modules/vpc?ref=0.1.0"
 
   name       = var.name
-  region     = data.aws_region.this.id
+  region     = var.region
   cidr_block = var.cidr_block
   subnets    = var.subnets
 }
@@ -34,7 +34,7 @@ module "ecs" {
   architecture    = var.architecture
   instance_type   = var.instance_type
   logging_enabled = true
-  aws_region      = data.aws_region.this.id
+  aws_region      = var.region
   tasks = {
     "${module.runner.image_name}" = {
       container_definition = {
