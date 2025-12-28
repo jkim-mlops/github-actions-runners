@@ -50,12 +50,23 @@ data "aws_iam_policy_document" "ecs_run_task" {
 }
 
 # Generate a random alphanumeric secret for webhook
+
+# Generate a random alphanumeric secret for webhook
 resource "random_string" "webhook_secret" {
   length  = var.webhook_secret_length
   special = false
   upper   = true
   lower   = true
   numeric = true
+}
+
+# Store the webhook secret in SSM Parameter Store
+resource "aws_ssm_parameter" "webhook_secret" {
+  name        = "/github-actions-runners/${var.name}/webhook_secret"
+  description = "GitHub Actions Runner Webhook Secret for ${var.name}"
+  type        = "SecureString"
+  value       = random_string.webhook_secret.result
+  overwrite   = true
 }
 
 resource "aws_iam_role" "this" {
@@ -84,8 +95,14 @@ resource "aws_lambda_function" "this" {
     command = ["lambda.handler"]
   }
 
+
   environment {
-    variables = var.environment_variables
+    variables = merge(
+      var.environment_variables,
+      {
+        WEBHOOK_SECRET_SSM_PARAM = aws_ssm_parameter.webhook_secret.name
+      }
+    )
   }
 
   memory_size = 512

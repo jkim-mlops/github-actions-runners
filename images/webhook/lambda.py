@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import os
 from typing import Any, Dict
+import boto3
 from aws_lambda_powertools.event_handler import (
     APIGatewayRestResolver,
     Response,
@@ -13,7 +14,18 @@ from aws_lambda_powertools.logging import Logger
 logger = Logger()
 app = APIGatewayRestResolver()
 
-WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "")
+
+# Fetch the webhook secret from SSM Parameter Store at cold start
+def get_webhook_secret():
+    ssm_param = os.environ.get("WEBHOOK_SECRET_SSM_PARAM", "")
+    if not ssm_param:
+        raise RuntimeError("WEBHOOK_SECRET_SSM_PARAM environment variable is not set!")
+    ssm = boto3.client("ssm")
+    response = ssm.get_parameter(Name=ssm_param, WithDecryption=True)
+    return response["Parameter"]["Value"]
+
+
+WEBHOOK_SECRET = get_webhook_secret()
 
 
 @app.exception_handler(ValueError)
@@ -31,9 +43,7 @@ def handle_unauthorized(ex: ValueError) -> Response:  # receives exception raise
     )
 
 
-def verify_signature(
-    payload_body: bytes, secret_token: str, signature_header: str
-) -> None:
+def verify_signature(payload_body: bytes, secret_token: str, signature_header: str) -> None:
     """Verify that the payload was sent from GitHub by validating SHA256.
 
     Raise and return 403 if not authorized.
@@ -45,9 +55,7 @@ def verify_signature(
     """
     if not signature_header:
         raise ValueError("x-hub-signature-256 header is missing!")
-    hash_object = hmac.new(
-        secret_token.encode("utf-8"), msg=payload_body, digestmod=hashlib.sha256
-    )
+    hash_object = hmac.new(secret_token.encode("utf-8"), msg=payload_body, digestmod=hashlib.sha256)
     expected_signature = "sha256=" + hash_object.hexdigest()
     if not hmac.compare_digest(expected_signature, signature_header):
         raise ValueError("Request signatures didn't match!")
@@ -56,17 +64,14 @@ def verify_signature(
 @app.get("/webhook")
 def handle_github_webhook():
     payload = app.current_event.json_body
-    return {
-        "message": "hello world"
-    }  # Powertools automatically handles the response format
+    return {"message": "hello world"}  # Powertools automatically handles the response format
 
 
+@logger.inject_lambda_context(log_event=True)
 def handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, Any]:
     # Extract signature from headers
     headers: Dict[str, str] = event.get("headers", {})
-    signature_header = headers.get("x-hub-signature-256", "") or headers.get(
-        "X-Hub-Signature-256", ""
-    )
+    signature_header = headers.get("x-hub-signature-256", "") or headers.get("X-Hub-Signature-256", "")
 
     # Get raw request body
     raw_body = event.get("body", "")

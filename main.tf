@@ -96,7 +96,7 @@ module "webhook" {
   source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.1.2"
 
   image_name    = "${var.name}-webhook"
-  image_tag     = "0.1.1"
+  image_tag     = "0.2.0"
   build_context = "${path.module}/images/webhook"
   platform      = "linux/arm64"
 }
