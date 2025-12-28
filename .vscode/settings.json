@@ -12,6 +12,7 @@
         "api_gateway",
         "outputs.tf",
         "lambda",
-        "github"
+        "github",
+        "README.md"
     ]
 }
