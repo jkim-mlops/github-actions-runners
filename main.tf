@@ -112,10 +112,9 @@ module "lambda" {
 module "api_gateway" {
   source = "./modules/api_gateway"
 
-  name                 = "${var.name}-webhook"
-  stage_name           = "prod"
-  lambda_invoke_arn    = module.lambda.lambda.invoke_arn
-  lambda_function_name = module.lambda.lambda.function_name
+  name       = "${var.name}-webhook"
+  stage_name = var.stage_name
+  lambda     = module.lambda.lambda
 }
 
 # Create webhook for repository

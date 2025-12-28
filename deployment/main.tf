@@ -38,6 +38,7 @@ module "main" {
   memory                            = 1048 * 4
   name                              = "gh-actions-${terraform.workspace}"
   repository_name                   = "github-actions-runners"
+  stage_name                        = terraform.workspace
   webhook_events                    = ["workflow_job"]
   subnets = {
     a-public = {

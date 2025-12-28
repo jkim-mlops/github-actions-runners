@@ -53,6 +53,12 @@ variable "repository_name" {
   type        = string
 }
 
+variable "stage_name" {
+  description = "API Gateway stage name"
+  type        = string
+  default     = "prod"
+}
+
 variable "subnets" {
   description = "Map of subnet configurations."
   type = map(object({

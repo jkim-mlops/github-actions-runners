@@ -9,12 +9,10 @@ variable "stage_name" {
   default     = "prod"
 }
 
-variable "lambda_invoke_arn" {
-  description = "Lambda function invoke ARN"
-  type        = string
-}
-
-variable "lambda_function_name" {
-  description = "Lambda function name"
-  type        = string
+variable "lambda" {
+  description = "Lambda function object"
+  type = object({
+    invoke_arn    = string
+    function_name = string
+  })
 }
