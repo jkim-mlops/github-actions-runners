@@ -24,9 +24,11 @@ End-to-end deployment of self-hosted GitHub Actions runners.
 | <a name="input_name"></a> [name](#input\_name) | value | `string` | n/a | yes |
 | <a name="input_region"></a> [region](#input\_region) | value | `string` | n/a | yes |
 | <a name="input_repository_names"></a> [repository\_names](#input\_repository\_names) | List of repository names to create webhooks for | `list(string)` | n/a | yes |
+| <a name="input_runner_image_tag"></a> [runner\_image\_tag](#input\_runner\_image\_tag) | Tag for the runner Docker image | `string` | n/a | yes |
 | <a name="input_stage_name"></a> [stage\_name](#input\_stage\_name) | API Gateway stage name | `string` | `"prod"` | no |
 | <a name="input_subnets"></a> [subnets](#input\_subnets) | Map of subnet configurations. | <pre>map(object({<br/>    availability_zone = string<br/>    cidr_block        = string<br/>    public            = bool<br/>  }))</pre> | n/a | yes |
 | <a name="input_webhook_events"></a> [webhook\_events](#input\_webhook\_events) | List of events that should trigger the webhook | `list(string)` | <pre>[<br/>  "workflow_job"<br/>]</pre> | no |
+| <a name="input_webhook_image_tag"></a> [webhook\_image\_tag](#input\_webhook\_image\_tag) | Tag for the webhook Docker image | `string` | n/a | yes |
 
 ## Outputs
 

@@ -4,7 +4,6 @@ variable "runner_image_tag" {
   type        = string
 }
 
-
 variable "webhook_image_tag" {
   description = "Tag for the webhook Docker image"
   type        = string

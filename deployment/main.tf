@@ -40,24 +40,23 @@ module "main" {
   providers = {
     github = github
   }
-  runner_image_tag = "0.1.0"
+
+  # General
+  name   = "gh-actions-${terraform.workspace}"
+  region = data.aws_region.this.id
+
+  # Image tags
+  runner_image_tag  = "0.1.0"
   webhook_image_tag = "0.2.0"
-  architecture                      = "arm64"
-  cidr_block                        = "10.0.0.0/16"
-  cpu                               = 1024 * 2
-  github_app_client_id_param_name   = data.aws_ssm_parameter.github_app_client_id.name
-  github_app_private_key_param_name = data.aws_ssm_parameter.github_app_private_key.name
-  github_app_ssm_param_arns = [
-    data.aws_ssm_parameter.github_app_client_id.arn,
-    data.aws_ssm_parameter.github_app_private_key.arn
-  ]
-  instance_type    = "m6g.large"
-  memory           = 1048 * 4
-  name             = "gh-actions-${terraform.workspace}"
-  region           = data.aws_region.this.id
-  repository_names = ["vllm-server"]
-  stage_name       = terraform.workspace
-  webhook_events   = ["workflow_job"]
+
+  # Compute/Platform
+  architecture  = "arm64"
+  instance_type = "m6g.large"
+  cpu           = 1024 * 2
+  memory        = 1048 * 4
+
+  # Networking
+  cidr_block = "10.0.0.0/16"
   subnets = {
     a-public = {
       availability_zone = "${data.aws_region.this.id}a"
@@ -80,4 +79,17 @@ module "main" {
       public            = false
     }
   }
+
+  # GitHub App
+  github_app_client_id_param_name   = data.aws_ssm_parameter.github_app_client_id.name
+  github_app_private_key_param_name = data.aws_ssm_parameter.github_app_private_key.name
+  github_app_ssm_param_arns = [
+    data.aws_ssm_parameter.github_app_client_id.arn,
+    data.aws_ssm_parameter.github_app_private_key.arn
+  ]
+
+  # Webhook/Repos
+  repository_names = ["vllm-server"]
+  webhook_events   = ["workflow_job"]
+  stage_name       = terraform.workspace
 }
