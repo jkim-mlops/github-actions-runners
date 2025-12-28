@@ -1,3 +1,15 @@
+/**
+* # Deployment Configuration
+*
+* Environment-specific deployment configuration for GitHub Actions runners.
+* Orchestrates the main module with GitHub App credentials and repository webhooks.
+*
+* ## Features
+* * Workspace-based environment management
+* * GitHub App authentication via SSM parameters
+* * Repository webhook configuration
+*/
+
 data "aws_region" "this" {}
 
 locals {

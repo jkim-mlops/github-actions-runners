@@ -2,9 +2,9 @@
 Deployment of self-hosted GitHub Actions runners.
 
 <!-- BEGIN_TF_DOCS -->
-# deployment
+# github-actions-runners
 
-End-to-end deployment of Github Actions runners.
+End-to-end deployment of self-hosted GitHub Actions runners.
 
 ## Features
 * Support for secure, cost-efficient container builds with **kaniko**.

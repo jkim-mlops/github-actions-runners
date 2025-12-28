@@ -1,3 +1,15 @@
+/**
+* # API Gateway Module
+*
+* Creates an API Gateway REST API with a webhook endpoint for receiving GitHub webhook events.
+*
+* ## Features
+* * Regional REST API endpoint
+* * POST method webhook resource
+* * Lambda proxy integration
+* * Automatic redeployment on configuration changes
+*/
+
 resource "aws_api_gateway_rest_api" "this" {
   name        = var.name
   description = "API Gateway for ${var.name}"

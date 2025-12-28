@@ -1,5 +1,13 @@
 <!-- BEGIN_TF_DOCS -->
+# API Gateway Module
 
+Creates an API Gateway REST API with a webhook endpoint for receiving GitHub webhook events.
+
+## Features
+* Regional REST API endpoint
+* POST method webhook resource
+* Lambda proxy integration
+* Automatic redeployment on configuration changes
 
 ## Inputs
 

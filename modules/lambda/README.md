@@ -1,5 +1,13 @@
 <!-- BEGIN_TF_DOCS -->
+# Lambda Webhook Handler Module
 
+Creates a Lambda function to handle GitHub webhook events and trigger ECS tasks for self-hosted runners.
+
+## Features
+* Generates secure webhook secret
+* IAM roles with ECS task execution permissions
+* Container-based Lambda function
+* Environment variable configuration support
 
 ## Inputs
 

@@ -1,3 +1,15 @@
+/**
+* # Lambda Webhook Handler Module
+*
+* Creates a Lambda function to handle GitHub webhook events and trigger ECS tasks for self-hosted runners.
+*
+* ## Features
+* * Generates secure webhook secret
+* * IAM roles with ECS task execution permissions
+* * Container-based Lambda function
+* * Environment variable configuration support
+*/
+
 data "aws_iam_policy_document" "assume_role" {
   statement {
     effect  = "Allow"
