@@ -106,10 +106,12 @@ module "lambda" {
   source   = "./modules/lambda"
 
   name                        = "${var.name}-webhook-${each.value}"
-  image_uri                   = "${module.webhook.ecr_repo.repository_url}:${module.webhook.image_tag}"
+  image_uri                   = "${module.webhook.ecr_repo.repository_url}@${module.webhook.image.sha256_digest}"
   ecs_task_definition_arns    = [for task in module.ecs.task_definitions : task.arn]
   ecs_task_execution_role_arn = module.ecs.task_execution_role.arn
   ecs_task_role_arns          = [for role in module.ecs.task_roles : role.arn]
+
+  depends_on = [ module.webhook ]
 }
 
 module "api_gateway" {

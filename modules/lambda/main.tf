@@ -47,9 +47,17 @@ data "aws_iam_policy_document" "ecs_run_task" {
       values   = ["ecs-tasks.amazonaws.com"]
     }
   }
-}
 
-# Generate a random alphanumeric secret for webhook
+  # Allow Lambda to get the webhook secret from SSM Parameter Store
+  statement {
+    effect = "Allow"
+    actions = [
+      "ssm:GetParameter",
+      "ssm:GetParameters"
+    ]
+    resources = [aws_ssm_parameter.webhook_secret.arn]
+  }
+}
 
 # Generate a random alphanumeric secret for webhook
 resource "random_string" "webhook_secret" {
@@ -94,7 +102,6 @@ resource "aws_lambda_function" "this" {
   image_config {
     command = ["lambda.handler"]
   }
-
 
   environment {
     variables = merge(

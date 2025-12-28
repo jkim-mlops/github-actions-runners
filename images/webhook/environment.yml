@@ -6,3 +6,4 @@ dependencies:
   - python >=3.13,<3.14
   - awslambdaric >=3.1,<4
   - aws-lambda-powertools >=3.23,<4
+  - boto3
