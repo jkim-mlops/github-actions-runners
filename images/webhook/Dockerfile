@@ -1,16 +1,12 @@
-FROM continuumio/miniconda3:latest
+FROM public.ecr.aws/lambda/python:3.13-arm64
 
-# Copy environment file and create conda environment
-COPY environment.yml .
-RUN conda env create -f environment.yml && \
-    conda clean -afy
-
-# Set the conda environment
-ENV PATH=/opt/conda/envs/webhook/bin:$PATH
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    "awslambdaric>=3.1,<4" \
+    "aws-lambda-powertools>=3.23,<4"
 
 # Copy function code
 COPY lambda.py ${LAMBDA_TASK_ROOT}/
 
 # Set the CMD to your handler
-ENTRYPOINT ["/opt/conda/envs/webhook/bin/python", "-m", "awslambdaric"]
 CMD ["lambda.handler"]
