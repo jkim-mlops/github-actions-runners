@@ -1,6 +1,6 @@
 data "aws_iam_policy_document" "assume_role" {
   statement {
-    effect = "Allow"
+    effect  = "Allow"
     actions = ["sts:AssumeRole"]
 
     principals {
@@ -22,7 +22,7 @@ data "aws_iam_policy_document" "ecs_run_task" {
   }
 
   statement {
-    effect = "Allow"
+    effect  = "Allow"
     actions = ["iam:PassRole"]
     resources = concat(
       [var.ecs_task_execution_role_arn],
@@ -66,10 +66,10 @@ resource "aws_lambda_function" "this" {
   function_name = var.name
   role          = aws_iam_role.this.arn
   package_type  = "Image"
-  image_uri     = var.image_uri 
+  image_uri     = var.image_uri
 
   image_config {
-    command     = ["lambda.handler"]
+    command = ["lambda.handler"]
   }
 
   environment {

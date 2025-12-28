@@ -17,11 +17,12 @@ module "vpc" {
 }
 
 module "runner" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.1.0"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.1.2"
 
   image_name    = "${var.name}-runner"
   image_tag     = "0.1.0"
   build_context = "${path.module}/images/runner"
+  platform      = "linux/arm64"
 }
 
 module "ecs" {
@@ -92,11 +93,12 @@ module "ecs" {
 }
 
 module "webhook" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.1.0"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.1.2"
 
   image_name    = "${var.name}-webhook"
   image_tag     = "0.1.0"
   build_context = "${path.module}/images/webhook"
+  platform      = "linux/arm64"
 }
 
 module "lambda" {

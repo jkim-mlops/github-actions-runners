@@ -38,14 +38,14 @@ variable "memory" {
   type        = number
 }
 
-variable "name" { 
+variable "name" {
   description = "value"
-  type = string
+  type        = string
 }
 
 variable "region" {
   description = "value"
-  type = string
+  type        = string
 }
 
 variable "repository_names" {

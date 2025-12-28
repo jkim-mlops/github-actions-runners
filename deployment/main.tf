@@ -25,6 +25,10 @@ data "aws_ssm_parameter" "github_app_private_key" {
 module "main" {
   source = "./.."
 
+  providers = {
+    github = github
+  }
+
   architecture                      = "arm64"
   cidr_block                        = "10.0.0.0/16"
   cpu                               = 1024 * 2
