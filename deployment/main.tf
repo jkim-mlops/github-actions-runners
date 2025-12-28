@@ -34,13 +34,13 @@ module "main" {
     data.aws_ssm_parameter.github_app_client_id.arn,
     data.aws_ssm_parameter.github_app_private_key.arn
   ]
-  instance_type   = "m6g.large"
-  memory          = 1048 * 4
-  name            = "gh-actions-${terraform.workspace}"
-  region          = data.aws_region.this.id
-  repository_name = "github-actions-runners"
-  stage_name      = terraform.workspace
-  webhook_events  = ["workflow_job"]
+  instance_type    = "m6g.large"
+  memory           = 1048 * 4
+  name             = "gh-actions-${terraform.workspace}"
+  region           = data.aws_region.this.id
+  repository_names = ["vllm-server"]
+  stage_name       = terraform.workspace
+  webhook_events   = ["workflow_job"]
   subnets = {
     a-public = {
       availability_zone = "${data.aws_region.this.id}a"

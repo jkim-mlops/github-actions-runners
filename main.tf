@@ -21,7 +21,7 @@ module "runner" {
 
   image_name    = "${var.name}-runner"
   image_tag     = "0.1.0"
-  build_context = "./images/runner"
+  build_context = "${path.module}/images/runner"
 }
 
 module "ecs" {
@@ -96,36 +96,39 @@ module "webhook" {
 
   image_name    = "${var.name}-webhook"
   image_tag     = "0.1.0"
-  build_context = "./images/webhook"
+  build_context = "${path.module}/images/webhook"
 }
 
 module "lambda" {
-  source = "./modules/lambda"
+  for_each = toset(var.repository_names)
+  source   = "./modules/lambda"
 
-  name = "${var.name}-webhook"
-  image_uri = "${module.webhook.ecr_repo.repository_url}:${module.webhook.image_tag}"
-  ecs_task_definition_arns = module.ecs.ecs_task_definition_arns
-  ecs_task_execution_role_arn = module.ecs.ecs_task_execution_role_arn
-  ecs_task_role_arns = module.ecs.ecs_task_role_arns
+  name                        = "${var.name}-webhook-${each.value}"
+  image_uri                   = "${module.webhook.ecr_repo.repository_url}:${module.webhook.image_tag}"
+  ecs_task_definition_arns    = [for task in module.ecs.task_definitions : task.arn]
+  ecs_task_execution_role_arn = module.ecs.task_execution_role.arn
+  ecs_task_role_arns          = [for role in module.ecs.task_roles : role.arn]
 }
 
 module "api_gateway" {
-  source = "./modules/api_gateway"
+  for_each = toset(var.repository_names)
+  source   = "./modules/api_gateway"
 
-  name       = "${var.name}-webhook"
+  name       = "${var.name}-webhook-${each.value}"
   stage_name = var.stage_name
-  lambda     = module.lambda.lambda
+  lambda     = module.lambda[each.key].lambda
 }
 
-# Create webhook for repository
+# Create webhook for each repository
 resource "github_repository_webhook" "this" {
-  repository = var.repository_name
+  for_each   = toset(var.repository_names)
+  repository = each.value
   active     = true
 
   configuration {
-    url          = module.api_gateway.url
+    url          = module.api_gateway[each.key].webhook_url
     content_type = "json"
-    secret       = module.lambda.webhook_secret
+    secret       = module.lambda[each.key].webhook_secret
     insecure_ssl = false
   }
 

@@ -48,9 +48,9 @@ variable "region" {
   type = string
 }
 
-variable "repository_name" {
-  description = "Repository name to create webhook for"
-  type        = string
+variable "repository_names" {
+  description = "List of repository names to create webhooks for"
+  type        = list(string)
 }
 
 variable "stage_name" {

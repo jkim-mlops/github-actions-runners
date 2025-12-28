@@ -59,7 +59,7 @@ resource "aws_iam_role_policy" "ecs_run_task" {
 
 resource "aws_iam_role_policy_attachment" "lambda_basic" {
   role       = aws_iam_role.this.name
-  policy_arn = "data:aws/iam/policy/service-role/AWSLambdaBasicExecutionRole"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_lambda_function" "this" {
