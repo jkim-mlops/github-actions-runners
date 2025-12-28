@@ -22,7 +22,7 @@ module "runner" {
   image_name    = "${var.name}-runner"
   image_tag     = "0.1.0"
   build_context = "${path.module}/images/runner"
-  platform      = "linux/arm64"
+  platform      = "linux/${var.architecture}"
 }
 
 module "ecs" {
@@ -98,7 +98,7 @@ module "webhook" {
   image_name    = "${var.name}-webhook"
   image_tag     = "0.2.0"
   build_context = "${path.module}/images/webhook"
-  platform      = "linux/arm64"
+  platform      = "linux/${var.architecture}"
 }
 
 module "lambda" {
@@ -112,6 +112,7 @@ module "lambda" {
   ecs_task_role_arns          = [for role in module.ecs.task_roles : role.arn]
 
   vpc_subnet_ids              = module.vpc.private_subnet_ids
+  architectures               = [var.architecture]
 
   depends_on = [ module.webhook ]
 }

@@ -40,6 +40,12 @@ variable "environment_variables" {
   default     = {}
 }
 
+variable "architectures" {
+  description = "Architectures for the Lambda function (e.g., [\"arm64\"], [\"x86_64\"])"
+  type        = list(string)
+  default     = ["arm64"]
+}
+
 variable "webhook_secret_length" {
   description = "Length of the generated webhook secret"
   type        = number

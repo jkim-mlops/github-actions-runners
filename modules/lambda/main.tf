@@ -126,10 +126,10 @@ resource "aws_lambda_function" "this" {
     )
   }
 
-  memory_size = 512
-  timeout     = 30
+  memory_size = 256
+  timeout     = 15
 
-  architectures = ["arm64"] # Graviton support for better price/performance
+  architectures = var.architectures
 
   vpc_config {
     subnet_ids         = var.vpc_subnet_ids
