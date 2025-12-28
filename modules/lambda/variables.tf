@@ -7,7 +7,6 @@ variable "vpc_subnet_ids" {
 variable "vpc_id" {
   description = "VPC ID for Lambda security group."
   type        = string
-  default     = ""
 }
 variable "name" {
   description = "value"

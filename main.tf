@@ -112,6 +112,7 @@ module "lambda" {
   ecs_task_role_arns          = [for role in module.ecs.task_roles : role.arn]
 
   vpc_subnet_ids              = module.vpc.private_subnet_ids
+  vpc_id                      = module.vpc.vpc_id
   architectures               = [var.architecture]
 
   depends_on = [ module.webhook ]

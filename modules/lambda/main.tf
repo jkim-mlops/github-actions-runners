@@ -33,6 +33,17 @@ data "aws_iam_policy_document" "ecs_run_task" {
     resources = var.ecs_task_definition_arns
   }
 
+  # Allow Lambda to manage network interfaces for VPC access
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:CreateNetworkInterface",
+      "ec2:DescribeNetworkInterfaces",
+      "ec2:DeleteNetworkInterface"
+    ]
+    resources = ["*"]
+  }
+
   statement {
     effect  = "Allow"
     actions = ["iam:PassRole"]
