@@ -1,3 +1,14 @@
+
+variable "runner_image_tag" {
+  description = "Tag for the runner Docker image"
+  type        = string
+}
+
+
+variable "webhook_image_tag" {
+  description = "Tag for the webhook Docker image"
+  type        = string
+}
 variable "architecture" {
   description = "ECS instance architecture (e.g., arm64, x86_64)"
   type        = string

@@ -40,7 +40,8 @@ module "main" {
   providers = {
     github = github
   }
-
+  runner_image_tag = "0.1.0"
+  webhook_image_tag = "0.2.0"
   architecture                      = "arm64"
   cidr_block                        = "10.0.0.0/16"
   cpu                               = 1024 * 2

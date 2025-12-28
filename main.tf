@@ -20,7 +20,7 @@ module "runner" {
   source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.1.2"
 
   image_name    = "${var.name}-runner"
-  image_tag     = "0.1.0"
+  image_tag     = var.runner_image_tag
   build_context = "${path.module}/images/runner"
   platform      = "linux/${var.architecture}"
 }
@@ -96,7 +96,7 @@ module "webhook" {
   source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.1.2"
 
   image_name    = "${var.name}-webhook"
-  image_tag     = "0.2.0"
+  image_tag     = var.webhook_image_tag
   build_context = "${path.module}/images/webhook"
   platform      = "linux/${var.architecture}"
 }
