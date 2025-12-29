@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV AWS_SDK_LOAD_CONFIG=true
 ENV RUNNER_VERSION=2.330.0
 ENV RUNNER_ARCH=linux-arm64
-ENV RUNNER_CHECKSUM=5d13b77d4f8c8d432e590ff75c4f299c9590c3835fa744c2e2c36e5c6d4ea63e
+ENV RUNNER_CHECKSUM=9cb43527912086c7c8fb4119cb06409fcbcbd6f93a2d8507f30b07c495620f5c
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
@@ -36,12 +36,18 @@ RUN conda env create -f /runner/environment.yml && \
 ENV CONDA_DEFAULT_ENV=runner
 ENV PATH="/opt/conda/envs/runner/bin:${PATH}"
 
-# Create runner directory
+# Create runner directory and non-root user
+RUN useradd -m -d /runner runneruser \
+    && chown -R runneruser:runneruser /runner
 WORKDIR /runner
 
 # Copy scripts
 COPY setup-runner.py /runner/setup-runner.py
 COPY fetch-runner.sh /runner/fetch-runner.sh
-RUN chmod +x /runner/setup-runner.py /runner/fetch-runner.sh
+RUN chmod +x /runner/setup-runner.py /runner/fetch-runner.sh \
+    && chown runneruser:runneruser /runner/setup-runner.py /runner/fetch-runner.sh
+
+# Switch to non-root user
+USER runneruser
 
 CMD ["python3", "/runner/setup-runner.py"]

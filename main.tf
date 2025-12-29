@@ -42,7 +42,7 @@ module "ecs" {
     "${module.runner.image_name}" = {
       container_definition = {
         name      = module.runner.image_name
-        image     = "${module.runner.ecr_repo.repository_url}:${module.runner.image_tag}"
+        image     = "${module.runner.ecr_repo.repository_url}@${module.runner.image.sha256_digest}"
         cpu       = var.cpu
         memory    = var.memory
         essential = true
