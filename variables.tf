@@ -1,3 +1,7 @@
+variable "github_app_installation_id" {
+  description = "GitHub App installation ID to be passed to the runner container"
+  type        = string
+}
 
 variable "runner_image_tag" {
   description = "Tag for the runner Docker image"
@@ -23,12 +27,12 @@ variable "cpu" {
   type        = number
 }
 
-variable "github_app_client_id_param_name" {
+variable "github_app_client_id_param" {
   description = "SSM parameter name for GitHub App client ID"
   type        = string
 }
 
-variable "github_app_private_key_param_name" {
+variable "github_app_private_key_param" {
   description = "SSM parameter name for GitHub App private key"
   type        = string
 }

@@ -52,12 +52,16 @@ module "ecs" {
             value = true
           },
           {
-            name  = "GITHUB_APP_CLIENT_ID_PARAM_NAME"
-            value = var.github_app_client_id_param_name
+            name  = "GITHUB_APP_CLIENT_ID_PARAM"
+            value = var.github_app_client_id_param
           },
           {
-            name  = "GITHUB_APP_PRIVATE_KEY_PARAM_NAME"
-            value = var.github_app_private_key_param_name
+            name  = "GITHUB_APP_PRIVATE_KEY_PARAM"
+            value = var.github_app_private_key_param
+          },
+          {
+            name  = "GITHUB_APP_INSTALLATION_ID"
+            value = var.github_app_installation_id
           }
         ]
       }
@@ -120,6 +124,7 @@ module "lambda" {
   environment_variables = {
     WEBHOOK_EVENTS         = jsonencode(var.webhook_events)
     RUNNER_TASK_ARN        = module.ecs.task_definitions[module.runner.image_name].arn
+    RUNNER_TASK_NAME       = module.runner.image_name
     ECS_CLUSTER            = module.ecs.cluster.id
     ECS_SUBNET_IDS         = jsonencode(module.vpc.private_subnet_ids)
     ECS_SECURITY_GROUP_IDS = jsonencode([module.ecs.security_group.id])

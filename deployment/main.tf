@@ -13,8 +13,9 @@
 data "aws_region" "this" {}
 
 locals {
-  github_app_name = "gh-actions-jkim-mlops"
-  github_owner    = "jkim-mlops"
+  github_app_name            = "gh-actions-jkim-mlops"
+  github_app_installation_id = "101115683"
+  github_owner               = "jkim-mlops"
 }
 
 # You should have a scoped token for creating webhooks already created in ssm.
@@ -35,7 +36,8 @@ data "aws_ssm_parameter" "github_app_private_key" {
 }
 
 module "main" {
-  source = "./.."
+  github_app_installation_id = local.github_app_installation_id
+  source                     = "./.."
 
   providers = {
     github = github
@@ -81,8 +83,8 @@ module "main" {
   }
 
   # GitHub App
-  github_app_client_id_param_name   = data.aws_ssm_parameter.github_app_client_id.name
-  github_app_private_key_param_name = data.aws_ssm_parameter.github_app_private_key.name
+  github_app_client_id_param   = data.aws_ssm_parameter.github_app_client_id.name
+  github_app_private_key_param = data.aws_ssm_parameter.github_app_private_key.name
   github_app_ssm_param_arns = [
     data.aws_ssm_parameter.github_app_client_id.arn,
     data.aws_ssm_parameter.github_app_private_key.arn

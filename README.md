@@ -16,8 +16,9 @@ End-to-end deployment of self-hosted GitHub Actions runners.
 | <a name="input_architecture"></a> [architecture](#input\_architecture) | ECS instance architecture (e.g., arm64, x86\_64) | `string` | n/a | yes |
 | <a name="input_cidr_block"></a> [cidr\_block](#input\_cidr\_block) | The CIDR block for the VPC. | `string` | n/a | yes |
 | <a name="input_cpu"></a> [cpu](#input\_cpu) | CPU units for the container (1024 = 1 vCPU) | `number` | n/a | yes |
-| <a name="input_github_app_client_id_param_name"></a> [github\_app\_client\_id\_param\_name](#input\_github\_app\_client\_id\_param\_name) | SSM parameter name for GitHub App client ID | `string` | n/a | yes |
-| <a name="input_github_app_private_key_param_name"></a> [github\_app\_private\_key\_param\_name](#input\_github\_app\_private\_key\_param\_name) | SSM parameter name for GitHub App private key | `string` | n/a | yes |
+| <a name="input_github_app_client_id_param"></a> [github\_app\_client\_id\_param](#input\_github\_app\_client\_id\_param) | SSM parameter name for GitHub App client ID | `string` | n/a | yes |
+| <a name="input_github_app_installation_id"></a> [github\_app\_installation\_id](#input\_github\_app\_installation\_id) | GitHub App installation ID to be passed to the runner container | `string` | n/a | yes |
+| <a name="input_github_app_private_key_param"></a> [github\_app\_private\_key\_param](#input\_github\_app\_private\_key\_param) | SSM parameter name for GitHub App private key | `string` | n/a | yes |
 | <a name="input_github_app_ssm_param_arns"></a> [github\_app\_ssm\_param\_arns](#input\_github\_app\_ssm\_param\_arns) | List of ARNs for GitHub App SSM parameters | `list(string)` | n/a | yes |
 | <a name="input_instance_type"></a> [instance\_type](#input\_instance\_type) | ECS instance type | `string` | n/a | yes |
 | <a name="input_memory"></a> [memory](#input\_memory) | Memory for the container in MiB | `number` | n/a | yes |

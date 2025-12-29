@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     webhook_secret_ssm_param: str = Field(default=...)
     webhook_events: str = Field(default=...)
     runner_task_arn: str = Field(default=...)
+    runner_task_name: str = Field(default=...)
     ecs_cluster: str = Field(default=...)
     ecs_subnet_ids: str = Field(default=...)
     ecs_security_group_ids: str = Field(default=...)
@@ -102,6 +103,11 @@ def handle_github_webhook():
     # elif event_type not in settings.events:
     #     raise ValueError(f"Unsupported event type: {event_type}")
 
+    # Parse repo_owner and repo_name from event body (assume JSON payload)
+    body = app.current_event.json_body
+    repo_owner = body.get("repository", {}).get("owner", {}).get("login")
+    repo_name = body.get("repository", {}).get("name")
+
     response = ecs.run_task(
         cluster=settings.ecs_cluster,
         launchType="FARGATE",
@@ -114,8 +120,21 @@ def handle_github_webhook():
                 "assignPublicIp": "ENABLED",
             }
         },
+        overrides={
+            "containerOverrides": [
+                {
+                    "name": settings.runner_task_name,  # must match container name in task def
+                    "environment": [
+                        {"name": "GITHUB_REPO_OWNER", "value": repo_owner},
+                        {"name": "GITHUB_REPO_NAME", "value": repo_name},
+                    ],
+                }
+            ]
+        },
         # capacityProviderStrategy=[{"capacityProvider": "FARGATE", "weight": 1}],
     )
+    logger.debug(response)
+
     return {"message": "ECS task launched"}
 
 

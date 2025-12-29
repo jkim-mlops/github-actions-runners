@@ -19,7 +19,9 @@ class Settings(BaseSettings):
         default=...,
         description="SSM parameter name containing the GitHub App client ID",
     )
-    installation_id: str = Field(default=..., description="GitHub App installation ID")
+    app_installation_id: str = Field(
+        default=..., description="GitHub App installation ID"
+    )
     repo_owner: str = Field(
         default=..., description="Repository owner (organization or user)"
     )
@@ -64,7 +66,7 @@ auth = Auth.AppAuth(client_id, private_key_content)
 gi = GithubIntegration(auth=auth)
 
 # Get installation and access token
-installation_id_int = int(settings.installation_id)
+installation_id_int = int(settings.app_installation_id)
 installation_auth_token = gi.get_access_token(installation_id_int)
 
 print(f"Got installation token for installation {installation_id_int}")
