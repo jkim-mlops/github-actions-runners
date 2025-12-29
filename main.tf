@@ -8,7 +8,7 @@
 */
 
 module "vpc" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/vpc?ref=0.1.0"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/vpc?ref=0.2.0"
 
   name       = var.name
   region     = var.region
@@ -26,7 +26,7 @@ module "runner" {
 }
 
 module "ecs" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=feat/fargate-cp"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=0.2.0"
 
   name               = var.name
   cidr_blocks        = [module.vpc.vpc_cidr_block]
@@ -99,7 +99,7 @@ module "ecs" {
 }
 
 module "webhook" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.1.2"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.2.0"
 
   image_name    = "${var.name}-webhook"
   image_tag     = var.webhook_image_tag
