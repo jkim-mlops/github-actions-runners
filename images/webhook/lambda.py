@@ -1,7 +1,7 @@
+import json
 import hashlib
 import hmac
-import os
-from typing import Any, Dict
+from typing import Any, Dict, List, Set
 import boto3
 from aws_lambda_powertools.event_handler import (
     APIGatewayRestResolver,
@@ -10,18 +10,43 @@ from aws_lambda_powertools.event_handler import (
 )
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.logging import Logger
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
+
+# Pydantic settings for environment variables
+class Settings(BaseSettings):
+    webhook_secret_ssm_param: str = Field(default=...)
+    webhook_events: str = Field(default=...)
+    runner_task_arn: str = Field(default=...)
+    ecs_cluster: str = Field(default=...)
+    ecs_subnet_ids: str = Field(default=...)
+    ecs_security_group_ids: str = Field(default=...)
+
+    @property
+    def events(self) -> Set[str]:
+        return set(json.loads(self.webhook_events))
+
+    @property
+    def subnet_ids(self) -> List[str]:
+        return json.loads(self.ecs_subnet_ids)
+
+    @property
+    def security_group_ids(self) -> List[str]:
+        return json.loads(self.ecs_security_group_ids)
+
+
+settings = Settings()
 logger = Logger()
 app = APIGatewayRestResolver()
+ecs = boto3.client("ecs")
 
 
-# Fetch the webhook secret from SSM Parameter Store at cold start
 def get_webhook_secret():
-    ssm_param = os.environ.get("WEBHOOK_SECRET_SSM_PARAM", "")
-    if not ssm_param:
-        raise RuntimeError("WEBHOOK_SECRET_SSM_PARAM environment variable is not set!")
     ssm = boto3.client("ssm")
-    response = ssm.get_parameter(Name=ssm_param, WithDecryption=True)
+    response = ssm.get_parameter(
+        Name=settings.webhook_secret_ssm_param, WithDecryption=True
+    )
     return response["Parameter"]["Value"]
 
 
@@ -43,7 +68,9 @@ def handle_unauthorized(ex: ValueError) -> Response:  # receives exception raise
     )
 
 
-def verify_signature(payload_body: bytes, secret_token: str, signature_header: str) -> None:
+def verify_signature(
+    payload_body: bytes, secret_token: str, signature_header: str
+) -> None:
     """Verify that the payload was sent from GitHub by validating SHA256.
 
     Raise and return 403 if not authorized.
@@ -55,7 +82,9 @@ def verify_signature(payload_body: bytes, secret_token: str, signature_header: s
     """
     if not signature_header:
         raise ValueError("x-hub-signature-256 header is missing!")
-    hash_object = hmac.new(secret_token.encode("utf-8"), msg=payload_body, digestmod=hashlib.sha256)
+    hash_object = hmac.new(
+        secret_token.encode("utf-8"), msg=payload_body, digestmod=hashlib.sha256
+    )
     expected_signature = "sha256=" + hash_object.hexdigest()
     if not hmac.compare_digest(expected_signature, signature_header):
         raise ValueError("Request signatures didn't match!")
@@ -63,14 +92,39 @@ def verify_signature(payload_body: bytes, secret_token: str, signature_header: s
 
 @app.post("/webhook")
 def handle_github_webhook():
-    return {"message": "hello world"}  # Powertools automatically handles the response format
+    # Only accept workflow_job events
+    event_type = app.current_event.headers.get(
+        "X-GitHub-Event"
+    ) or app.current_event.headers.get("x-github-event")
+    if event_type == "ping":
+        return {"status": "ping accepted"}
+    elif event_type not in settings.events:
+        raise ValueError(f"Unsupported event type: {event_type}")
+
+    response = ecs.run_task(
+        cluster=settings.ecs_cluster,
+        launchType="FARGATE",
+        taskDefinition=settings.runner_task_arn,
+        count=1,
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": settings.subnet_ids,
+                "securityGroups": settings.security_group_ids,
+                "assignPublicIp": "ENABLED",
+            }
+        },
+        capacityProviderStrategy=[{"capacityProvider": "FARGATE", "weight": 1}],
+    )
+    return {"message": "ECS task launched", "ecs_response": response}
 
 
 @logger.inject_lambda_context(log_event=True)
 def handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, Any]:
     # Extract signature from headers
     headers: Dict[str, str] = event.get("headers", {})
-    signature_header = headers.get("x-hub-signature-256", "") or headers.get("X-Hub-Signature-256", "")
+    signature_header = headers.get("x-hub-signature-256", "") or headers.get(
+        "X-Hub-Signature-256", ""
+    )
 
     # Get raw request body
     raw_body = event.get("body", "")

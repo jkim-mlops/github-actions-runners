@@ -26,7 +26,7 @@ module "runner" {
 }
 
 module "ecs" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=0.1.1"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=feat/fargate-cp"
 
   name            = var.name
   cidr_blocks     = [module.vpc.vpc_cidr_block]
@@ -35,6 +35,7 @@ module "ecs" {
   architecture    = var.architecture
   instance_type   = var.instance_type
   logging_enabled = true
+  log_retention_days = 1
   aws_region      = var.region
   tasks = {
     "${module.runner.image_name}" = {
@@ -115,6 +116,12 @@ module "lambda" {
   vpc_id         = module.vpc.vpc_id
   architectures  = [var.architecture]
 
+  environment_variables = {
+    RUNNER_TASK_ARN        = module.ecs.task_definitions[0].arn
+    ECS_CLUSTER            = module.ecs.cluster_id
+    ECS_SUBNET_IDS         = jsonencode(module.vpc.private_subnet_ids)
+    ECS_SECURITY_GROUP_IDS = jsonencode([module.ecs.security_group.id])
+  }
   depends_on = [module.webhook]
 }
 

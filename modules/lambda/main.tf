@@ -132,7 +132,7 @@ resource "aws_lambda_function" "this" {
     variables = merge(
       var.environment_variables,
       {
-        WEBHOOK_SECRET_SSM_PARAM = aws_ssm_parameter.webhook_secret.name
+        WEBHOOK_SECRET_SSM_PARAM = aws_ssm_parameter.webhook_secret.name,
       }
     )
   }
