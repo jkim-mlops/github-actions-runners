@@ -39,7 +39,7 @@ No outputs.
 | Name | Source | Version |
 |------|--------|---------|
 | <a name="module_api_gateway"></a> [api\_gateway](#module\_api\_gateway) | ./modules/api_gateway | n/a |
-| <a name="module_ecs"></a> [ecs](#module\_ecs) | git@github.com:jkim-mlops/terraform-modules.git//modules/ecs | 0.1.1 |
+| <a name="module_ecs"></a> [ecs](#module\_ecs) | git@github.com:jkim-mlops/terraform-modules.git//modules/ecs | feat/fargate-cp |
 | <a name="module_lambda"></a> [lambda](#module\_lambda) | ./modules/lambda | n/a |
 | <a name="module_runner"></a> [runner](#module\_runner) | git@github.com:jkim-mlops/terraform-modules.git//modules/docker | 0.1.2 |
 | <a name="module_vpc"></a> [vpc](#module\_vpc) | git@github.com:jkim-mlops/terraform-modules.git//modules/vpc | 0.1.0 |

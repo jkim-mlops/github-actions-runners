@@ -53,7 +53,7 @@ module "main" {
   architecture  = "arm64"
   instance_type = "m6g.large"
   cpu           = 1024 * 2
-  memory        = 1048 * 4
+  memory        = 1024 * 4
 
   # Networking
   cidr_block = "10.0.0.0/16"

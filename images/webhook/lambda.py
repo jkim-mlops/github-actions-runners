@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     ecs_cluster: str = Field(default=...)
     ecs_subnet_ids: str = Field(default=...)
     ecs_security_group_ids: str = Field(default=...)
+    launch_type: str = Field(default=...)
 
     @property
     def events(self) -> Set[str]:
@@ -96,10 +97,10 @@ def handle_github_webhook():
     event_type = app.current_event.headers.get(
         "X-GitHub-Event"
     ) or app.current_event.headers.get("x-github-event")
-    if event_type == "ping":
-        return {"status": "ping accepted"}
-    elif event_type not in settings.events:
-        raise ValueError(f"Unsupported event type: {event_type}")
+    # if event_type == "ping":
+    #     return {"status": "ping accepted"}
+    # elif event_type not in settings.events:
+    #     raise ValueError(f"Unsupported event type: {event_type}")
 
     response = ecs.run_task(
         cluster=settings.ecs_cluster,
@@ -113,9 +114,9 @@ def handle_github_webhook():
                 "assignPublicIp": "ENABLED",
             }
         },
-        capacityProviderStrategy=[{"capacityProvider": "FARGATE", "weight": 1}],
+        # capacityProviderStrategy=[{"capacityProvider": "FARGATE", "weight": 1}],
     )
-    return {"message": "ECS task launched", "ecs_response": response}
+    return {"message": "ECS task launched"}
 
 
 @logger.inject_lambda_context(log_event=True)
