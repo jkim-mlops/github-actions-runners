@@ -13,10 +13,17 @@ RUN apt-get update && apt-get install -y \
     git \
     ca-certificates \
     libicu70 \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Kaniko executor from official multi-arch image
-COPY --from=gcr.io/kaniko-project/executor:latest /kaniko/executor /usr/local/bin/executor
+# Install AWS CLI v2
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip" \
+    && unzip awscliv2.zip \
+    && ./aws/install \
+    && rm -rf aws awscliv2.zip
+
+# Copy kimia executor from official multi-arch image
+COPY --from=ghcr.io/rapidfort/kimia:latest /usr/local/bin/kimia /usr/local/bin/kimia
 
 # Install miniforge (conda-forge based, no ToS issues)
 RUN wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-aarch64.sh -O /tmp/miniforge.sh && \
