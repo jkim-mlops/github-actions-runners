@@ -98,10 +98,10 @@ def handle_github_webhook():
     event_type = app.current_event.headers.get(
         "X-GitHub-Event"
     ) or app.current_event.headers.get("x-github-event")
-    # if event_type == "ping":
-    #     return {"status": "ping accepted"}
-    # elif event_type not in settings.events:
-    #     raise ValueError(f"Unsupported event type: {event_type}")
+    if event_type == "ping":
+        return {"status": "ping accepted"}
+    elif event_type not in settings.events:
+        raise ValueError(f"Unsupported event type: {event_type}")
 
     # Parse repo_owner and repo_name from event body (assume JSON payload)
     body = app.current_event.json_body
