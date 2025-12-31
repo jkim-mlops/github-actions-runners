@@ -46,6 +46,11 @@ module "ecs" {
         cpu       = var.cpu
         memory    = var.memory
         essential = true
+        linuxParameters = {
+          capabilities = {
+            add = ["SYS_ADMIN", "SETUID", "SETGID"]
+          }
+        }
         environment = [
           {
             name  = "AWS_SDK_LOAD_CONFIG"

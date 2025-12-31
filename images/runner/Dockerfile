@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     libicu70 \
     unzip \
+    buildah \
+    fuse-overlayfs \
     && rm -rf /var/lib/apt/lists/*
 
 # Install AWS CLI v2
@@ -44,15 +46,30 @@ ENV CONDA_DEFAULT_ENV=runner
 ENV PATH="/opt/conda/envs/runner/bin:${PATH}"
 
 # Create runner directory and non-root user
-RUN useradd -m -d /runner runneruser \
-    && chown -R runneruser:runneruser /runner
+RUN useradd -m -d /runner runneruser && \
+    mkdir -p /runner && \
+    chown -R runneruser:runneruser /runner
+
+# Configure subuid and subgid for rootless buildah
+RUN echo "runneruser:100000:65536" > /etc/subuid && \
+    echo "runneruser:100000:65536" > /etc/subgid
+
+# Configure buildah for rootless operation
+RUN mkdir -p /etc/containers && \
+    echo '[storage]' > /etc/containers/storage.conf && \
+    echo 'driver = "vfs"' >> /etc/containers/storage.conf && \
+    echo '[storage.options]' >> /etc/containers/storage.conf && \
+    echo '[storage.options.vfs]' >> /etc/containers/storage.conf
+
+# Set buildah isolation mode environment variable
+ENV BUILDAH_ISOLATION=chroot
 WORKDIR /runner
 
 # Copy scripts
 COPY setup-runner.py /runner/setup-runner.py
 COPY fetch-runner.sh /runner/fetch-runner.sh
-RUN chmod +x /runner/setup-runner.py /runner/fetch-runner.sh \
-    && chown runneruser:runneruser /runner/setup-runner.py /runner/fetch-runner.sh
+RUN chmod +x /runner/setup-runner.py /runner/fetch-runner.sh && \
+    chown runneruser:runneruser /runner/setup-runner.py /runner/fetch-runner.sh
 
 # Switch to non-root user
 USER runneruser
