@@ -24,9 +24,6 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv
     && ./aws/install \
     && rm -rf aws awscliv2.zip
 
-# Copy kimia executor from official multi-arch image
-COPY --from=ghcr.io/rapidfort/kimia:latest /usr/local/bin/kimia /usr/local/bin/kimia
-
 # Install miniforge (conda-forge based, no ToS issues)
 RUN wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-aarch64.sh -O /tmp/miniforge.sh && \
     bash /tmp/miniforge.sh -b -p /opt/conda && \
@@ -50,19 +47,6 @@ RUN useradd -m -d /runner runneruser && \
     mkdir -p /runner && \
     chown -R runneruser:runneruser /runner
 
-# Configure subuid and subgid for rootless buildah
-RUN echo "runneruser:100000:65536" > /etc/subuid && \
-    echo "runneruser:100000:65536" > /etc/subgid
-
-# Configure buildah for rootless operation
-RUN mkdir -p /etc/containers && \
-    echo '[storage]' > /etc/containers/storage.conf && \
-    echo 'driver = "vfs"' >> /etc/containers/storage.conf && \
-    echo '[storage.options]' >> /etc/containers/storage.conf && \
-    echo '[storage.options.vfs]' >> /etc/containers/storage.conf
-
-# Set buildah isolation mode environment variable
-ENV BUILDAH_ISOLATION=chroot
 WORKDIR /runner
 
 # Copy scripts
@@ -74,4 +58,5 @@ RUN chmod +x /runner/setup-runner.py /runner/fetch-runner.sh && \
 # Switch to non-root user
 USER runneruser
 
-CMD ["python3", "/runner/setup-runner.py"]
+# Ensure conda environment is activated before running the script
+CMD ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate runner && python /runner/setup-runner.py"]
