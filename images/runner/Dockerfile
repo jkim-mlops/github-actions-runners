@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     buildah \
     fuse-overlayfs \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Install AWS CLI v2
@@ -45,7 +46,8 @@ ENV PATH="/opt/conda/envs/runner/bin:${PATH}"
 # Create runner directory and non-root user
 RUN useradd -m -d /runner runneruser && \
     mkdir -p /runner && \
-    chown -R runneruser:runneruser /runner
+    chown -R runneruser:runneruser /runner && \
+    chown -R runneruser:runneruser /opt/conda
 
 WORKDIR /runner
 

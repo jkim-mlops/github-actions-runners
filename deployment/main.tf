@@ -91,7 +91,7 @@ module "main" {
   ]
 
   # Webhook/Repos
-  repository_names = ["vllm-server"]
+  repository_names = ["tradestation-python-ci"]
   webhook_events   = ["workflow_job"]
   stage_name       = terraform.workspace
 }

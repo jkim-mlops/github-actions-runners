@@ -46,9 +46,7 @@ ecs = boto3.client("ecs")
 
 def get_webhook_secret():
     ssm = boto3.client("ssm")
-    response = ssm.get_parameter(
-        Name=settings.webhook_secret_ssm_param, WithDecryption=True
-    )
+    response = ssm.get_parameter(Name=settings.webhook_secret_ssm_param, WithDecryption=True)
     return response["Parameter"]["Value"]
 
 
@@ -70,9 +68,7 @@ def handle_unauthorized(ex: ValueError) -> Response:  # receives exception raise
     )
 
 
-def verify_signature(
-    payload_body: bytes, secret_token: str, signature_header: str
-) -> None:
+def verify_signature(payload_body: bytes, secret_token: str, signature_header: str) -> None:
     """Verify that the payload was sent from GitHub by validating SHA256.
 
     Raise and return 403 if not authorized.
@@ -84,9 +80,7 @@ def verify_signature(
     """
     if not signature_header:
         raise ValueError("x-hub-signature-256 header is missing!")
-    hash_object = hmac.new(
-        secret_token.encode("utf-8"), msg=payload_body, digestmod=hashlib.sha256
-    )
+    hash_object = hmac.new(secret_token.encode("utf-8"), msg=payload_body, digestmod=hashlib.sha256)
     expected_signature = "sha256=" + hash_object.hexdigest()
     if not hmac.compare_digest(expected_signature, signature_header):
         raise ValueError("Request signatures didn't match!")
@@ -95,9 +89,7 @@ def verify_signature(
 @app.post("/webhook")
 def handle_github_webhook():
     # Only accept workflow_job events
-    event_type = app.current_event.headers.get(
-        "X-GitHub-Event"
-    ) or app.current_event.headers.get("x-github-event")
+    event_type = app.current_event.headers.get("X-GitHub-Event") or app.current_event.headers.get("x-github-event")
     if event_type == "ping":
         return {"status": "ping accepted"}
     elif event_type not in settings.events:
@@ -105,6 +97,14 @@ def handle_github_webhook():
 
     # Parse repo_owner and repo_name from event body (assume JSON payload)
     body = app.current_event.json_body
+
+    # Only process workflow_job events with action "queued"
+    if event_type == "workflow_job":
+        action = body.get("action")
+        if action != "queued":
+            logger.info(f"Ignoring workflow_job event with action: {action}")
+            return {"message": f"Ignored workflow_job action: {action}"}
+
     repo_owner = body.get("repository", {}).get("owner", {}).get("login")
     repo_name = body.get("repository", {}).get("name")
 
@@ -142,9 +142,7 @@ def handle_github_webhook():
 def handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, Any]:
     # Extract signature from headers
     headers: Dict[str, str] = event.get("headers", {})
-    signature_header = headers.get("x-hub-signature-256", "") or headers.get(
-        "X-Hub-Signature-256", ""
-    )
+    signature_header = headers.get("x-hub-signature-256", "") or headers.get("X-Hub-Signature-256", "")
 
     # Get raw request body
     raw_body = event.get("body", "")

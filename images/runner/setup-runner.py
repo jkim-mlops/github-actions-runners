@@ -25,19 +25,11 @@ class Settings(BaseSettings):
         default=...,
         description="SSM parameter name containing the GitHub App client ID",
     )
-    app_installation_id: str = Field(
-        default=..., description="GitHub App installation ID"
-    )
-    repo_owner: str = Field(
-        default=..., description="Repository owner (organization or user)"
-    )
+    app_installation_id: str = Field(default=..., description="GitHub App installation ID")
+    repo_owner: str = Field(default=..., description="Repository owner (organization or user)")
     repo_name: str = Field(default=..., description="Repository name")
-    runner_base_dir: str = Field(
-        default="/runner", description="Base directory for runner files"
-    )
-    test_mode: bool = Field(
-        default=False, description="Run in test mode (skip runner setup)"
-    )
+    runner_base_dir: str = Field(default="/runner", description="Base directory for runner files")
+    test_mode: bool = Field(default=False, description="Run in test mode (skip runner setup)")
 
     @property
     def runner_url(self) -> str:
@@ -46,8 +38,11 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def runner_name(self) -> str:
-        """Generate runner name: repo-name-runner"""
-        return f"{self.repo_name}-runner"
+        """Generate runner name: repo-name-runner-{task_id}"""
+        import uuid
+
+        task_id = str(uuid.uuid4())[:8]
+        return f"{self.repo_name}-runner-{task_id}"
 
 
 settings = Settings()
@@ -56,15 +51,11 @@ settings = Settings()
 ssm = boto3.client("ssm")
 
 # Get private key from SSM
-private_key_response = ssm.get_parameter(
-    Name=settings.app_private_key_param, WithDecryption=True
-)
+private_key_response = ssm.get_parameter(Name=settings.app_private_key_param, WithDecryption=True)
 private_key_content = private_key_response["Parameter"]["Value"]
 
 # Get client ID from SSM
-client_id_response = ssm.get_parameter(
-    Name=settings.app_client_id_param, WithDecryption=True
-)
+client_id_response = ssm.get_parameter(Name=settings.app_client_id_param, WithDecryption=True)
 client_id = client_id_response["Parameter"]["Value"]
 
 # Authenticate as GitHub App
@@ -89,9 +80,7 @@ logger.info(f"Requesting runner token from: {url}")
 response = requests.post(url, headers=headers)
 
 if response.status_code != 201:
-    logger.error(
-        f"Error response: {response.status_code} | Response body: {response.text}"
-    )
+    logger.error(f"Error response: {response.status_code} | Response body: {response.text}")
 
 response.raise_for_status()
 runner_token = response.json()["token"]
@@ -104,9 +93,7 @@ if settings.test_mode:
     exit(0)
 
 # Fetch and setup runner if not already present
-runner_config_path = os.path.join(
-    settings.runner_base_dir, "actions-runner", "config.sh"
-)
+runner_config_path = os.path.join(settings.runner_base_dir, "actions-runner", "config.sh")
 if not os.path.isfile(runner_config_path):
     logger.info("Fetching GitHub Actions runner...")
     os.chdir(settings.runner_base_dir)
