@@ -1,7 +1,7 @@
 /**
 * # github-actions-runners
 *
-* End-to-end deployment of self-hosted GitHub Actions runners.
+* End-to-end deployment of self-hosted GitHub Actions runners to do builds on ECS Fargate.
 *
 * ## Features
 * * Support for secure, cost-efficient container builds with **kaniko**.
