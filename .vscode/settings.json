@@ -1,0 +1,19 @@
+{
+    "conventionalCommits.scopes": [
+        "deployment",
+        ".vscode",
+        "docker",
+        "main.tf",
+        "lambda.py",
+        "Dockerfile",
+        "runner",
+        ".gitignore",
+        "images",
+        "api_gateway",
+        "outputs.tf",
+        "lambda",
+        "github",
+        "README.md",
+        "variables.tf"
+    ]
+}
