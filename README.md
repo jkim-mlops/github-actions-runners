@@ -6,6 +6,8 @@ End-to-end deployment of self-hosted GitHub Actions runners to do builds on ECS 
 ## Features
 * Support for secure, cost-efficient conda package builds.
 
+https://github.com/user-attachments/assets/37918a08-233a-45d4-8ff3-93d21f0643e0
+
 ## Inputs
 
 | Name | Description | Type | Default | Required |
