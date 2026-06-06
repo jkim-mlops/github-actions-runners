@@ -101,7 +101,7 @@ def handle_github_webhook():
     # Only process workflow_job events with action "queued"
     if event_type == "workflow_job":
         action = body.get("action")
-        if action != "queued":
+        if action not in ("queued", "completed"):
             logger.info(f"Ignoring workflow_job event with action: {action}")
             return {"message": f"Ignored workflow_job action: {action}"}
 
