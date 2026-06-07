@@ -1,6 +1,7 @@
 import json
 import hashlib
 import hmac
+import uuid
 from typing import Any, Dict, List, NamedTuple, Set
 import boto3
 from aws_lambda_powertools.event_handler import (
@@ -74,6 +75,53 @@ def select_target(labels: List[str]) -> Target:
     if "docker" in labels:
         return Target(settings.dind_runner_task_arn, settings.dind_runner_task_name, True)
     return Target(settings.fargate_runner_task_arn, settings.fargate_runner_task_name, False)
+
+
+def build_run_task_kwargs(target: Target, repo_owner: str, repo_name: str) -> Dict[str, Any]:
+    """Assemble ecs.run_task kwargs for the selected runner target.
+
+    Each runner gets a unique label so GitHub's matcher keeps dispatching to
+    idle ephemeral runners (community discussion #120813); the DinD runner also
+    advertises ``docker`` so docker-labeled jobs route to it.
+    """
+    label_parts = ["self-hosted"]
+    if target.use_mi:
+        label_parts.append("docker")
+    label_parts.append(uuid.uuid4().hex[:8])
+    runner_labels = ",".join(label_parts)
+
+    kwargs: Dict[str, Any] = {
+        "cluster": settings.ecs_cluster,
+        "taskDefinition": target.task_arn,
+        "count": 1,
+        "overrides": {
+            "containerOverrides": [
+                {
+                    "name": target.task_name,  # must match the container name in the task def
+                    "environment": [
+                        {"name": "GITHUB_REPO_OWNER", "value": repo_owner},
+                        {"name": "GITHUB_REPO_NAME", "value": repo_name},
+                        {"name": "RUNNER_LABELS", "value": runner_labels},
+                    ],
+                }
+            ]
+        },
+    }
+
+    if target.use_mi:
+        # Managed Instances: the capacity provider's launch template owns networking.
+        kwargs["capacityProviderStrategy"] = [{"capacityProvider": settings.mi_capacity_provider}]
+    else:
+        kwargs["launchType"] = settings.launch_type
+        kwargs["networkConfiguration"] = {
+            "awsvpcConfiguration": {
+                "subnets": settings.subnet_ids,
+                "securityGroups": settings.security_group_ids,
+                "assignPublicIp": "ENABLED",
+            }
+        }
+
+    return kwargs
 
 
 @app.exception_handler(ValueError)

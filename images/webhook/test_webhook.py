@@ -77,3 +77,49 @@ def test_no_docker_label_routes_to_fargate(webhook_mod):
     assert target.task_name == "ci-runner"
     assert target.task_arn == BASE_ENV["FARGATE_RUNNER_TASK_ARN"]
     assert target.use_mi is False
+
+
+def _runner_labels(kwargs):
+    env = kwargs["overrides"]["containerOverrides"][0]["environment"]
+    return next(e["value"] for e in env if e["name"] == "RUNNER_LABELS")
+
+
+def test_dind_uses_capacity_provider_strategy(webhook_mod):
+    kw = webhook_mod.build_run_task_kwargs(
+        webhook_mod.Target("arn:dind", "ci-dind", True), repo_owner="o", repo_name="r"
+    )
+    assert kw["capacityProviderStrategy"] == [{"capacityProvider": "ci-mi"}]
+    assert "launchType" not in kw
+    assert kw["taskDefinition"] == "arn:dind"
+    assert kw["overrides"]["containerOverrides"][0]["name"] == "ci-dind"
+
+
+def test_fargate_uses_launch_type(webhook_mod):
+    kw = webhook_mod.build_run_task_kwargs(
+        webhook_mod.Target("arn:fargate", "ci-runner", False), repo_owner="o", repo_name="r"
+    )
+    assert kw["launchType"] == "FARGATE"
+    assert "capacityProviderStrategy" not in kw
+    assert kw["overrides"]["containerOverrides"][0]["name"] == "ci-runner"
+    assert "awsvpcConfiguration" in kw["networkConfiguration"]
+
+
+def test_unique_runner_label_is_set_and_distinct(webhook_mod):
+    a = _runner_labels(webhook_mod.build_run_task_kwargs(webhook_mod.Target("a", "ci-runner", False), "o", "r"))
+    b = _runner_labels(webhook_mod.build_run_task_kwargs(webhook_mod.Target("a", "ci-runner", False), "o", "r"))
+    assert a != b  # unique per launch
+    assert "self-hosted" in a
+
+
+def test_dind_labels_include_docker(webhook_mod):
+    val = _runner_labels(webhook_mod.build_run_task_kwargs(webhook_mod.Target("a", "ci-dind", True), "o", "r"))
+    assert "docker" in val
+
+
+def test_repo_env_overrides_present(webhook_mod):
+    env = webhook_mod.build_run_task_kwargs(
+        webhook_mod.Target("a", "ci-runner", False), "owner1", "repo1"
+    )["overrides"]["containerOverrides"][0]["environment"]
+    by_name = {e["name"]: e["value"] for e in env}
+    assert by_name["GITHUB_REPO_OWNER"] == "owner1"
+    assert by_name["GITHUB_REPO_NAME"] == "repo1"
