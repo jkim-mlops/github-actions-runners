@@ -19,10 +19,11 @@ module "vpc" {
 module "runner" {
   source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=feat/ec2-dind"
 
-  image_name    = "${var.name}-runner"
-  image_tag     = var.runner_image_tag
-  build_context = "${path.module}/images/runner"
-  platform      = "linux/${var.architecture}"
+  image_name          = "${var.name}-runner"
+  image_tag           = var.runner_image_tag
+  build_context       = "${path.module}/images/runner"
+  platform            = "linux/${var.architecture}"
+  build_hash_excludes = local.image_build_hash_excludes
 }
 
 module "dind" {
@@ -43,6 +44,9 @@ module "dind" {
 # Shared runner container config (both the Fargate and DinD runners self-register
 # via the same GitHub App and need the same SSM/ECR access).
 locals {
+  # Test files aren't copied into the images; keep them out of the build hash.
+  image_build_hash_excludes = ["**/test_*.py", "**/conftest.py"]
+
   runner_environment = [
     { name = "AWS_SDK_LOAD_CONFIG", value = true },
     { name = "GITHUB_APP_CLIENT_ID_PARAM", value = var.github_app_client_id_param },
@@ -146,10 +150,11 @@ module "ecs" {
 module "webhook" {
   source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=feat/ec2-dind"
 
-  image_name    = "${var.name}-webhook"
-  image_tag     = var.webhook_image_tag
-  build_context = "${path.module}/images/webhook"
-  platform      = "linux/${var.architecture}"
+  image_name          = "${var.name}-webhook"
+  image_tag           = var.webhook_image_tag
+  build_context       = "${path.module}/images/webhook"
+  platform            = "linux/${var.architecture}"
+  build_hash_excludes = local.image_build_hash_excludes
 }
 
 module "lambda" {
