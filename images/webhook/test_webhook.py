@@ -123,3 +123,55 @@ def test_repo_env_overrides_present(webhook_mod):
     by_name = {e["name"]: e["value"] for e in env}
     assert by_name["GITHUB_REPO_OWNER"] == "owner1"
     assert by_name["GITHUB_REPO_NAME"] == "repo1"
+
+
+@pytest.fixture
+def ecs_client(webhook_mod):
+    """A moto-backed ECS client with the cluster and both task defs registered."""
+    client = boto3.client("ecs")
+    client.create_cluster(clusterName="ci-cluster")
+    for family in ("ci-runner", "ci-dind"):
+        client.register_task_definition(
+            family=family,
+            containerDefinitions=[{"name": family, "image": "x:latest", "memory": 512}],
+        )
+    return client
+
+
+@pytest.fixture
+def job_body():
+    """Factory for a workflow_job webhook body with the given labels."""
+
+    def _make(labels):
+        return {
+            "action": "queued",
+            "repository": {"owner": {"login": "o"}, "name": "r"},
+            "workflow_job": {"labels": labels},
+        }
+
+    return _make
+
+
+def test_launch_runner_fargate_starts_task(webhook_mod, ecs_client, job_body):
+    webhook_mod.launch_runner(job_body(["self-hosted"]))
+    task_arns = ecs_client.list_tasks(cluster="ci-cluster")["taskArns"]
+    assert len(task_arns) == 1
+    desc = ecs_client.describe_tasks(cluster="ci-cluster", tasks=task_arns)["tasks"][0]
+    assert "ci-runner" in desc["taskDefinitionArn"]
+
+
+def test_launch_runner_dind_targets_mi(webhook_mod, job_body, monkeypatch):
+    # moto's run_task doesn't model MI capacity providers, so capture the call
+    # and assert the DinD path targets the MI capacity provider.
+    captured = {}
+
+    def fake_run_task(**kwargs):
+        captured.update(kwargs)
+        return {}
+
+    monkeypatch.setattr(webhook_mod.ecs, "run_task", fake_run_task)
+    webhook_mod.launch_runner(job_body(["self-hosted", "docker"]))
+
+    assert captured["taskDefinition"] == BASE_ENV["DIND_RUNNER_TASK_ARN"]
+    assert captured["capacityProviderStrategy"] == [{"capacityProvider": "ci-mi"}]
+    assert "launchType" not in captured

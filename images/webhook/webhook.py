@@ -157,6 +157,18 @@ def verify_signature(payload_body: bytes, secret_token: str, signature_header: s
         raise ValueError("Request signatures didn't match!")
 
 
+def launch_runner(body: Dict[str, Any]) -> Dict[str, Any]:
+    """Launch the ECS runner task that matches the event's requested labels."""
+    repo_owner = body.get("repository", {}).get("owner", {}).get("login")
+    repo_name = body.get("repository", {}).get("name")
+
+    target = select_target(extract_labels(body))
+    kwargs = build_run_task_kwargs(target, repo_owner, repo_name)
+    response = ecs.run_task(**kwargs)
+    logger.debug(response)
+    return response
+
+
 @app.post("/webhook")
 def handle_github_webhook():
     # Only accept workflow_job events
@@ -176,36 +188,7 @@ def handle_github_webhook():
             logger.info(f"Ignoring workflow_job event with action: {action}")
             return {"message": f"Ignored workflow_job action: {action}"}
 
-    repo_owner = body.get("repository", {}).get("owner", {}).get("login")
-    repo_name = body.get("repository", {}).get("name")
-
-    response = ecs.run_task(
-        cluster=settings.ecs_cluster,
-        launchType="FARGATE",
-        taskDefinition=settings.fargate_runner_task_arn,
-        count=1,
-        networkConfiguration={
-            "awsvpcConfiguration": {
-                "subnets": settings.subnet_ids,
-                "securityGroups": settings.security_group_ids,
-                "assignPublicIp": "ENABLED",
-            }
-        },
-        overrides={
-            "containerOverrides": [
-                {
-                    "name": settings.fargate_runner_task_name,  # must match container name in task def
-                    "environment": [
-                        {"name": "GITHUB_REPO_OWNER", "value": repo_owner},
-                        {"name": "GITHUB_REPO_NAME", "value": repo_name},
-                    ],
-                }
-            ]
-        },
-        # capacityProviderStrategy=[{"capacityProvider": "FARGATE", "weight": 1}],
-    )
-    logger.debug(response)
-
+    launch_runner(body)
     return {"message": "ECS task launched"}
 
 
