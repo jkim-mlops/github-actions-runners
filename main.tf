@@ -40,6 +40,41 @@ module "dind" {
   depends_on = [module.runner]
 }
 
+# Shared runner container config (both the Fargate and DinD runners self-register
+# via the same GitHub App and need the same SSM/ECR access).
+locals {
+  runner_environment = [
+    { name = "AWS_SDK_LOAD_CONFIG", value = true },
+    { name = "GITHUB_APP_CLIENT_ID_PARAM", value = var.github_app_client_id_param },
+    { name = "GITHUB_APP_PRIVATE_KEY_PARAM", value = var.github_app_private_key_param },
+    { name = "GITHUB_APP_INSTALLATION_ID", value = var.github_app_installation_id },
+  ]
+
+  runner_iam = {
+    ecrPermissions = {
+      actions = [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:PutImage",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload",
+        "ecr:CreateRepository",
+        "ecr:DescribeRepositories"
+      ]
+      resources = ["*"]
+    }
+    ssmPermissions = {
+      actions   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
+      resources = var.github_app_ssm_param_arns
+    }
+    kmsPermissions = {
+      actions   = ["kms:Decrypt"]
+      resources = var.github_app_ssm_param_arns
+    }
+  }
+}
+
 module "ecs" {
   source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=feat/ec2-dind"
 
@@ -53,6 +88,21 @@ module "ecs" {
   logging_enabled    = true
   log_retention_days = 1
   aws_region         = var.region
+
+  # Managed Instances capacity provider for the privileged DinD runner.
+  managed_instances = {
+    instance_requirements = {
+      vcpu_count            = { min = 2, max = 8 }
+      memory_mib            = { min = 4096 }
+      cpu_manufacturers     = ["amazon-web-services"] # Graviton / ARM64
+      instance_generations  = ["current"]
+      burstable_performance = "excluded"
+    }
+    storage_size_gib       = 100 # room for Docker image layers
+    scale_in_after_seconds = 0   # scale to zero when idle
+    monitoring             = "BASIC"
+  }
+
   tasks = {
     "${module.runner.image_name}" = {
       container_definition = {
@@ -66,54 +116,29 @@ module "ecs" {
             add = ["SYS_ADMIN", "SETUID", "SETGID"]
           }
         }
-        environment = [
-          {
-            name  = "AWS_SDK_LOAD_CONFIG"
-            value = true
-          },
-          {
-            name  = "GITHUB_APP_CLIENT_ID_PARAM"
-            value = var.github_app_client_id_param
-          },
-          {
-            name  = "GITHUB_APP_PRIVATE_KEY_PARAM"
-            value = var.github_app_private_key_param
-          },
-          {
-            name  = "GITHUB_APP_INSTALLATION_ID"
-            value = var.github_app_installation_id
+        environment = local.runner_environment
+      }
+      iam = local.runner_iam
+    }
+
+    # Privileged Docker-in-Docker runner on Managed Instances.
+    "${module.dind.image_name}" = {
+      requires_compatibilities = ["MANAGED_INSTANCES"]
+      container_definition = {
+        name       = module.dind.image_name
+        image      = "${module.dind.ecr_repo.repository_url}@${module.dind.image.sha256_digest}"
+        cpu        = var.cpu
+        memory     = var.memory
+        essential  = true
+        privileged = true # required for Docker-in-Docker
+        linuxParameters = {
+          capabilities = {
+            add = ["SYS_ADMIN", "NET_ADMIN"]
           }
-        ]
+        }
+        environment = local.runner_environment
       }
-      iam = {
-        ecrPermissions = {
-          actions = [
-            "ecr:GetAuthorizationToken",
-            "ecr:BatchCheckLayerAvailability",
-            "ecr:PutImage",
-            "ecr:InitiateLayerUpload",
-            "ecr:UploadLayerPart",
-            "ecr:CompleteLayerUpload",
-            "ecr:CreateRepository",
-            "ecr:DescribeRepositories"
-          ]
-          resources = ["*"]
-        }
-        ssmPermissions = {
-          actions = [
-            "ssm:GetParameter",
-            "ssm:GetParameters",
-            "ssm:GetParametersByPath"
-          ]
-          resources = var.github_app_ssm_param_arns
-        }
-        kmsPermissions = {
-          actions = [
-            "kms:Decrypt"
-          ]
-          resources = var.github_app_ssm_param_arns
-        }
-      }
+      iam = local.runner_iam
     }
   }
 }
@@ -142,13 +167,13 @@ module "lambda" {
   architectures  = [var.architecture]
 
   environment_variables = {
-    WEBHOOK_EVENTS         = jsonencode(var.webhook_events)
+    WEBHOOK_EVENTS           = jsonencode(var.webhook_events)
     FARGATE_RUNNER_TASK_ARN  = module.ecs.task_definitions[module.runner.image_name].arn
     FARGATE_RUNNER_TASK_NAME = module.runner.image_name
-    ECS_CLUSTER            = module.ecs.cluster.id
-    ECS_SUBNET_IDS         = jsonencode(module.vpc.private_subnet_ids)
-    ECS_SECURITY_GROUP_IDS = jsonencode([module.ecs.security_group.id])
-    LAUNCH_TYPE            = "FARGATE"
+    ECS_CLUSTER              = module.ecs.cluster.id
+    ECS_SUBNET_IDS           = jsonencode(module.vpc.private_subnet_ids)
+    ECS_SECURITY_GROUP_IDS   = jsonencode([module.ecs.security_group.id])
+    LAUNCH_TYPE              = "FARGATE"
   }
   depends_on = [module.webhook]
 }
