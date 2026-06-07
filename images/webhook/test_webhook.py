@@ -54,3 +54,12 @@ def webhook_mod(monkeypatch):
 def test_fixture_loads_module(webhook_mod):
     # Proves the import + moto-backed SSM read works end to end.
     assert webhook_mod.WEBHOOK_SECRET == WEBHOOK_SECRET_VALUE
+
+
+def test_extract_labels_reads_workflow_job_labels(webhook_mod):
+    body = {"workflow_job": {"labels": ["self-hosted", "docker"]}}
+    assert webhook_mod.extract_labels(body) == ["self-hosted", "docker"]
+
+
+def test_extract_labels_missing_is_empty(webhook_mod):
+    assert webhook_mod.extract_labels({}) == []

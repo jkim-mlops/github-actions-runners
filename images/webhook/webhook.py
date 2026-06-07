@@ -53,6 +53,11 @@ def get_webhook_secret():
 WEBHOOK_SECRET = get_webhook_secret()
 
 
+def extract_labels(body: Dict[str, Any]) -> List[str]:
+    """Return the runner labels requested by a workflow_job event."""
+    return body.get("workflow_job", {}).get("labels", [])
+
+
 @app.exception_handler(ValueError)
 def handle_unauthorized(ex: ValueError) -> Response:  # receives exception raised
     metadata = {
