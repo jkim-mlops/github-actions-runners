@@ -25,6 +25,21 @@ module "runner" {
   platform      = "linux/${var.architecture}"
 }
 
+module "dind" {
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=feat/ec2-dind"
+
+  image_name    = "${var.name}-dind"
+  image_tag     = var.dind_image_tag
+  build_context = "${path.module}/images/dind"
+  platform      = "linux/${var.architecture}"
+  # Build FROM the runner image so setup_runner.py / conda env stay a single source of truth.
+  build_args = {
+    BASE_IMAGE = "${module.runner.ecr_repo.repository_url}@${module.runner.image.sha256_digest}"
+  }
+
+  depends_on = [module.runner]
+}
+
 module "ecs" {
   source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=feat/ec2-dind"
 

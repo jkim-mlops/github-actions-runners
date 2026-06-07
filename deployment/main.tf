@@ -50,6 +50,7 @@ module "main" {
   # Image tags
   runner_image_tag  = "0.1.0"
   webhook_image_tag = "0.2.0"
+  dind_image_tag    = "0.1.0"
 
   # Compute/Platform
   architecture  = "arm64"
