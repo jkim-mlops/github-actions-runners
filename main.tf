@@ -170,6 +170,9 @@ module "lambda" {
     WEBHOOK_EVENTS           = jsonencode(var.webhook_events)
     FARGATE_RUNNER_TASK_ARN  = module.ecs.task_definitions[module.runner.image_name].arn
     FARGATE_RUNNER_TASK_NAME = module.runner.image_name
+    DIND_RUNNER_TASK_ARN     = module.ecs.task_definitions[module.dind.image_name].arn
+    DIND_RUNNER_TASK_NAME    = module.dind.image_name
+    MI_CAPACITY_PROVIDER     = module.ecs.managed_instances_capacity_provider
     ECS_CLUSTER              = module.ecs.cluster.id
     ECS_SUBNET_IDS           = jsonencode(module.vpc.private_subnet_ids)
     ECS_SECURITY_GROUP_IDS   = jsonencode([module.ecs.security_group.id])
