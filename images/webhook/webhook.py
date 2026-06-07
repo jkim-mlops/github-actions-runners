@@ -1,7 +1,7 @@
 import json
 import hashlib
 import hmac
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, NamedTuple, Set
 import boto3
 from aws_lambda_powertools.event_handler import (
     APIGatewayRestResolver,
@@ -18,12 +18,15 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     webhook_secret_ssm_param: str = Field(default=...)
     webhook_events: str = Field(default=...)
-    runner_task_arn: str = Field(default=...)
-    runner_task_name: str = Field(default=...)
+    fargate_runner_task_arn: str = Field(default=...)
+    fargate_runner_task_name: str = Field(default=...)
     ecs_cluster: str = Field(default=...)
     ecs_subnet_ids: str = Field(default=...)
     ecs_security_group_ids: str = Field(default=...)
     launch_type: str = Field(default=...)
+    dind_runner_task_arn: str = Field(default=...)
+    dind_runner_task_name: str = Field(default=...)
+    mi_capacity_provider: str = Field(default=...)
 
     @property
     def events(self) -> Set[str]:
@@ -56,6 +59,21 @@ WEBHOOK_SECRET = get_webhook_secret()
 def extract_labels(body: Dict[str, Any]) -> List[str]:
     """Return the runner labels requested by a workflow_job event."""
     return body.get("workflow_job", {}).get("labels", [])
+
+
+class Target(NamedTuple):
+    """The ECS task a webhook event should launch."""
+
+    task_arn: str
+    task_name: str
+    use_mi: bool  # True -> Managed Instances (DinD); False -> Fargate
+
+
+def select_target(labels: List[str]) -> Target:
+    """Route docker-labeled jobs to the DinD runner, everything else to Fargate."""
+    if "docker" in labels:
+        return Target(settings.dind_runner_task_arn, settings.dind_runner_task_name, True)
+    return Target(settings.fargate_runner_task_arn, settings.fargate_runner_task_name, False)
 
 
 @app.exception_handler(ValueError)
@@ -116,7 +134,7 @@ def handle_github_webhook():
     response = ecs.run_task(
         cluster=settings.ecs_cluster,
         launchType="FARGATE",
-        taskDefinition=settings.runner_task_arn,
+        taskDefinition=settings.fargate_runner_task_arn,
         count=1,
         networkConfiguration={
             "awsvpcConfiguration": {
@@ -128,7 +146,7 @@ def handle_github_webhook():
         overrides={
             "containerOverrides": [
                 {
-                    "name": settings.runner_task_name,  # must match container name in task def
+                    "name": settings.fargate_runner_task_name,  # must match container name in task def
                     "environment": [
                         {"name": "GITHUB_REPO_OWNER", "value": repo_owner},
                         {"name": "GITHUB_REPO_NAME", "value": repo_name},

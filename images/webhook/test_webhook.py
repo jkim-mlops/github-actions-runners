@@ -12,14 +12,14 @@ WEBHOOK_SECRET_VALUE = "supersecret"
 BASE_ENV = {
     "WEBHOOK_SECRET_SSM_PARAM": WEBHOOK_SECRET_PARAM,
     "WEBHOOK_EVENTS": json.dumps(["workflow_job"]),
-    "RUNNER_TASK_ARN": "arn:aws:ecs:us-east-1:123456789012:task-definition/ci-runner:1",
-    "RUNNER_TASK_NAME": "ci-runner",
+    "FARGATE_RUNNER_TASK_ARN": "arn:aws:ecs:us-east-1:123456789012:task-definition/ci-runner:1",
+    "FARGATE_RUNNER_TASK_NAME": "ci-runner",
     "ECS_CLUSTER": "ci-cluster",
     "ECS_SUBNET_IDS": json.dumps(["subnet-1"]),
     "ECS_SECURITY_GROUP_IDS": json.dumps(["sg-1"]),
     "LAUNCH_TYPE": "FARGATE",
-    "DOCKER_RUNNER_TASK_ARN": "arn:aws:ecs:us-east-1:123456789012:task-definition/ci-dind:1",
-    "DOCKER_RUNNER_TASK_NAME": "ci-dind",
+    "DIND_RUNNER_TASK_ARN": "arn:aws:ecs:us-east-1:123456789012:task-definition/ci-dind:1",
+    "DIND_RUNNER_TASK_NAME": "ci-dind",
     "MI_CAPACITY_PROVIDER": "ci-mi",
     # Region + dummy creds so boto3 builds clients (moto intercepts the calls).
     "AWS_DEFAULT_REGION": "us-east-1",
@@ -63,3 +63,17 @@ def test_extract_labels_reads_workflow_job_labels(webhook_mod):
 
 def test_extract_labels_missing_is_empty(webhook_mod):
     assert webhook_mod.extract_labels({}) == []
+
+
+def test_docker_label_routes_to_dind(webhook_mod):
+    target = webhook_mod.select_target(["self-hosted", "docker"])
+    assert target.task_name == "ci-dind"
+    assert target.task_arn == BASE_ENV["DIND_RUNNER_TASK_ARN"]
+    assert target.use_mi is True
+
+
+def test_no_docker_label_routes_to_fargate(webhook_mod):
+    target = webhook_mod.select_target(["self-hosted"])
+    assert target.task_name == "ci-runner"
+    assert target.task_arn == BASE_ENV["FARGATE_RUNNER_TASK_ARN"]
+    assert target.use_mi is False

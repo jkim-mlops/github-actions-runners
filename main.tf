@@ -128,8 +128,8 @@ module "lambda" {
 
   environment_variables = {
     WEBHOOK_EVENTS         = jsonencode(var.webhook_events)
-    RUNNER_TASK_ARN        = module.ecs.task_definitions[module.runner.image_name].arn
-    RUNNER_TASK_NAME       = module.runner.image_name
+    FARGATE_RUNNER_TASK_ARN  = module.ecs.task_definitions[module.runner.image_name].arn
+    FARGATE_RUNNER_TASK_NAME = module.runner.image_name
     ECS_CLUSTER            = module.ecs.cluster.id
     ECS_SUBNET_IDS         = jsonencode(module.vpc.private_subnet_ids)
     ECS_SECURITY_GROUP_IDS = jsonencode([module.ecs.security_group.id])
