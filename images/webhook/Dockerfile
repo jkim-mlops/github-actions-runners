@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir \
     "pydantic-settings>=2,<3"
 
 # Copy function code
-COPY lambda.py ${LAMBDA_TASK_ROOT}/
+COPY webhook.py ${LAMBDA_TASK_ROOT}/
 
 # Set the CMD to your handler
-CMD ["lambda.handler"]
+CMD ["webhook.handler"]

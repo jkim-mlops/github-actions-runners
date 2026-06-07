@@ -9,3 +9,5 @@ dependencies:
   - boto3 >=1.40,<2
   - pydantic >=2,<3
   - pydantic-settings >=2,<3
+  - pytest >=8,<9
+  - moto >=5,<6
