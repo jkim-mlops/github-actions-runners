@@ -10,9 +10,6 @@ FROM ${BASE_IMAGE}
 
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
-# Use the legacy builder so `docker build` runs on dockerd's (vfs) graph driver
-# instead of BuildKit's overlayfs snapshotter, which can't nest on the overlay rootfs.
-ENV DOCKER_BUILDKIT=0
 
 # Docker engine (dockerd + CLI) for in-task Docker-in-Docker.
 RUN apt-get update && apt-get install -y --no-install-recommends \

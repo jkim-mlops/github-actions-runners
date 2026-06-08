@@ -115,11 +115,8 @@ module "ecs" {
         cpu       = var.cpu
         memory    = var.memory
         essential = true
-        linuxParameters = {
-          capabilities = {
-            add = ["SYS_ADMIN", "SETUID", "SETGID"]
-          }
-        }
+        # No Linux capabilities: Fargate rejects SYS_ADMIN etc. Privileged
+        # builds run on the DinD runner below.
         environment = local.runner_environment
       }
       iam = local.runner_iam
@@ -128,6 +125,9 @@ module "ecs" {
     # Privileged Docker-in-Docker runner on Managed Instances.
     "${module.dind.image_name}" = {
       requires_compatibilities = ["MANAGED_INSTANCES"]
+      # Back /var/lib/docker with a host volume on the instance's real fs so
+      # dockerd's overlay2 isn't nested on the container's overlay rootfs.
+      volumes = [{ name = "docker-storage" }]
       container_definition = {
         name       = module.dind.image_name
         image      = "${module.dind.ecr_repo.repository_url}@${module.dind.image.sha256_digest}"
@@ -140,6 +140,7 @@ module "ecs" {
             add = ["SYS_ADMIN", "NET_ADMIN"]
           }
         }
+        mountPoints = [{ sourceVolume = "docker-storage", containerPath = "/var/lib/docker" }]
         environment = local.runner_environment
       }
       iam = local.runner_iam
