@@ -65,6 +65,13 @@ def test_extract_labels_missing_is_empty(webhook_mod):
     assert webhook_mod.extract_labels({}) == []
 
 
+def test_only_queued_workflow_jobs_launch(webhook_mod):
+    assert webhook_mod.should_handle_action("queued") is True
+    assert webhook_mod.should_handle_action("completed") is False
+    assert webhook_mod.should_handle_action("in_progress") is False
+    assert webhook_mod.should_handle_action(None) is False
+
+
 def test_docker_label_routes_to_dind(webhook_mod):
     target = webhook_mod.select_target(["self-hosted", "docker"])
     assert target.task_name == "ci-dind"

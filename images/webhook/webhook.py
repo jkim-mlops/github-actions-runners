@@ -62,6 +62,15 @@ def extract_labels(body: Dict[str, Any]) -> List[str]:
     return body.get("workflow_job", {}).get("labels", [])
 
 
+def should_handle_action(action: Any) -> bool:
+    """Launch a runner only for a freshly queued workflow_job.
+
+    (Earlier we also launched on "completed" to allow reruns, but that spawned
+    a duplicate task per job.)
+    """
+    return action == "queued"
+
+
 class Target(NamedTuple):
     """The ECS task a webhook event should launch."""
 
@@ -181,10 +190,10 @@ def handle_github_webhook():
     # Parse repo_owner and repo_name from event body (assume JSON payload)
     body = app.current_event.json_body
 
-    # Only process workflow_job events with action "queued"
+    # Only a freshly queued workflow_job should launch a runner.
     if event_type == "workflow_job":
         action = body.get("action")
-        if action not in ("queued", "completed"):
+        if not should_handle_action(action):
             logger.info(f"Ignoring workflow_job event with action: {action}")
             return {"message": f"Ignored workflow_job action: {action}"}
 
