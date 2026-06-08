@@ -3,9 +3,10 @@
 # Runs as root (the task is privileged) so dockerd can set up cgroups/overlayfs.
 set -euo pipefail
 
-# Start the Docker daemon in the background (overlay2; the privileged task
-# provides the capabilities dockerd needs).
-dockerd >/var/log/dockerd.log 2>&1 &
+# Start the Docker daemon in the background. Use the vfs storage driver: the
+# container rootfs is already overlay, so overlay2/overlayfs can't nest on it
+# (overlay-on-overlay fails with EINVAL). vfs does full copies, no mounts.
+dockerd --storage-driver=vfs >/var/log/dockerd.log 2>&1 &
 
 # Wait for the daemon to accept connections; fail fast if it never comes up so
 # the job errors clearly instead of hanging.
