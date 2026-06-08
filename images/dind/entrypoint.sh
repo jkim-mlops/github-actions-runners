@@ -22,6 +22,7 @@ for attempt in $(seq 1 30); do
 done
 
 # Drop to the non-root runner user (in the docker group) and start the runner
-# with the conda environment activated.
-exec su runneruser -c \
+# with the conda environment activated. Force bash: su defaults to /bin/sh
+# (dash), where `source` doesn't exist.
+exec su runneruser -s /bin/bash -c \
     'source /opt/conda/etc/profile.d/conda.sh && conda activate runner && exec python /runner/setup_runner.py'
