@@ -92,6 +92,11 @@ def test_dind_uses_capacity_provider_strategy(webhook_mod):
     assert "launchType" not in kw
     assert kw["taskDefinition"] == "arn:dind"
     assert kw["overrides"]["containerOverrides"][0]["name"] == "ci-dind"
+    # awsvpc network mode requires networkConfiguration even on MI; assignPublicIp
+    # is Fargate-only and must NOT be set here.
+    awsvpc = kw["networkConfiguration"]["awsvpcConfiguration"]
+    assert awsvpc["subnets"] == ["subnet-1"]
+    assert "assignPublicIp" not in awsvpc
 
 
 def test_fargate_uses_launch_type(webhook_mod):

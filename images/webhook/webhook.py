@@ -108,18 +108,18 @@ def build_run_task_kwargs(target: Target, repo_owner: str, repo_name: str) -> Di
         },
     }
 
+    # awsvpc network mode requires task networking for both launch paths.
+    awsvpc = {
+        "subnets": settings.subnet_ids,
+        "securityGroups": settings.security_group_ids,
+    }
     if target.use_mi:
-        # Managed Instances: the capacity provider's launch template owns networking.
         kwargs["capacityProviderStrategy"] = [{"capacityProvider": settings.mi_capacity_provider}]
+        # assignPublicIp is Fargate-only; MI instances reach the network via their subnet.
+        kwargs["networkConfiguration"] = {"awsvpcConfiguration": awsvpc}
     else:
         kwargs["launchType"] = settings.launch_type
-        kwargs["networkConfiguration"] = {
-            "awsvpcConfiguration": {
-                "subnets": settings.subnet_ids,
-                "securityGroups": settings.security_group_ids,
-                "assignPublicIp": "ENABLED",
-            }
-        }
+        kwargs["networkConfiguration"] = {"awsvpcConfiguration": {**awsvpc, "assignPublicIp": "ENABLED"}}
 
     return kwargs
 
