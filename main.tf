@@ -17,7 +17,7 @@ module "vpc" {
 }
 
 module "runner" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=feat/ec2-dind"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.5.0"
 
   image_name          = "${var.name}-runner"
   image_tag           = var.runner_image_tag
@@ -27,7 +27,7 @@ module "runner" {
 }
 
 module "dind" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=feat/ec2-dind"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.5.0"
 
   image_name    = "${var.name}-dind"
   image_tag     = var.dind_image_tag
@@ -80,7 +80,7 @@ locals {
 }
 
 module "ecs" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=feat/ec2-dind"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=0.5.0"
 
   name               = var.name
   cidr_blocks        = [module.vpc.vpc_cidr_block]
@@ -149,7 +149,7 @@ module "ecs" {
 }
 
 module "webhook" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=feat/ec2-dind"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.5.0"
 
   image_name          = "${var.name}-webhook"
   image_tag           = var.webhook_image_tag
