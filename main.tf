@@ -17,16 +17,70 @@ module "vpc" {
 }
 
 module "runner" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.4.1"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.5.0"
 
-  image_name    = "${var.name}-runner"
-  image_tag     = var.runner_image_tag
-  build_context = "${path.module}/images/runner"
+  image_name          = "${var.name}-runner"
+  image_tag           = var.runner_image_tag
+  build_context       = "${path.module}/images/runner"
+  platform            = "linux/${var.architecture}"
+  build_hash_excludes = local.image_build_hash_excludes
+}
+
+module "dind" {
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.5.0"
+
+  image_name    = "${var.name}-dind"
+  image_tag     = var.dind_image_tag
+  build_context = "${path.module}/images/dind"
   platform      = "linux/${var.architecture}"
+  # Build FROM the runner image so setup_runner.py / conda env stay a single source of truth.
+  build_args = {
+    BASE_IMAGE = "${module.runner.ecr_repo.repository_url}@${module.runner.image.sha256_digest}"
+  }
+
+  depends_on = [module.runner]
+}
+
+# Shared runner container config (both the Fargate and DinD runners self-register
+# via the same GitHub App and need the same SSM/ECR access).
+locals {
+  # Test files aren't copied into the images; keep them out of the build hash.
+  image_build_hash_excludes = ["**/test_*.py", "**/conftest.py"]
+
+  runner_environment = [
+    { name = "AWS_SDK_LOAD_CONFIG", value = true },
+    { name = "GITHUB_APP_CLIENT_ID_PARAM", value = var.github_app_client_id_param },
+    { name = "GITHUB_APP_PRIVATE_KEY_PARAM", value = var.github_app_private_key_param },
+    { name = "GITHUB_APP_INSTALLATION_ID", value = var.github_app_installation_id },
+  ]
+
+  runner_iam = {
+    ecrPermissions = {
+      actions = [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:PutImage",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload",
+        "ecr:CreateRepository",
+        "ecr:DescribeRepositories"
+      ]
+      resources = ["*"]
+    }
+    ssmPermissions = {
+      actions   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
+      resources = var.github_app_ssm_param_arns
+    }
+    kmsPermissions = {
+      actions   = ["kms:Decrypt"]
+      resources = var.github_app_ssm_param_arns
+    }
+  }
 }
 
 module "ecs" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=0.4.1"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/ecs?ref=0.5.0"
 
   name               = var.name
   cidr_blocks        = [module.vpc.vpc_cidr_block]
@@ -38,6 +92,21 @@ module "ecs" {
   logging_enabled    = true
   log_retention_days = 1
   aws_region         = var.region
+
+  # Managed Instances capacity provider for the privileged DinD runner.
+  managed_instances = {
+    instance_requirements = {
+      vcpu_count            = { min = 2, max = 8 }
+      memory_mib            = { min = 4096 }
+      cpu_manufacturers     = ["amazon-web-services"] # Graviton / ARM64
+      instance_generations  = ["current"]
+      burstable_performance = "excluded"
+    }
+    storage_size_gib       = 100 # room for Docker image layers
+    scale_in_after_seconds = 0   # scale to zero when idle
+    monitoring             = "BASIC"
+  }
+
   tasks = {
     "${module.runner.image_name}" = {
       container_definition = {
@@ -46,70 +115,47 @@ module "ecs" {
         cpu       = var.cpu
         memory    = var.memory
         essential = true
+        # No Linux capabilities: Fargate rejects SYS_ADMIN etc. Privileged
+        # builds run on the DinD runner below.
+        environment = local.runner_environment
+      }
+      iam = local.runner_iam
+    }
+
+    # Privileged Docker-in-Docker runner on Managed Instances.
+    "${module.dind.image_name}" = {
+      requires_compatibilities = ["MANAGED_INSTANCES"]
+      # Back /var/lib/docker with a host volume on the instance's real fs so
+      # dockerd's overlay2 isn't nested on the container's overlay rootfs.
+      volumes = [{ name = "docker-storage" }]
+      container_definition = {
+        name       = module.dind.image_name
+        image      = "${module.dind.ecr_repo.repository_url}@${module.dind.image.sha256_digest}"
+        cpu        = var.cpu
+        memory     = var.memory
+        essential  = true
+        privileged = true # required for Docker-in-Docker
         linuxParameters = {
           capabilities = {
-            add = ["SYS_ADMIN", "SETUID", "SETGID"]
+            add = ["SYS_ADMIN", "NET_ADMIN"]
           }
         }
-        environment = [
-          {
-            name  = "AWS_SDK_LOAD_CONFIG"
-            value = true
-          },
-          {
-            name  = "GITHUB_APP_CLIENT_ID_PARAM"
-            value = var.github_app_client_id_param
-          },
-          {
-            name  = "GITHUB_APP_PRIVATE_KEY_PARAM"
-            value = var.github_app_private_key_param
-          },
-          {
-            name  = "GITHUB_APP_INSTALLATION_ID"
-            value = var.github_app_installation_id
-          }
-        ]
+        mountPoints = [{ sourceVolume = "docker-storage", containerPath = "/var/lib/docker" }]
+        environment = local.runner_environment
       }
-      iam = {
-        ecrPermissions = {
-          actions = [
-            "ecr:GetAuthorizationToken",
-            "ecr:BatchCheckLayerAvailability",
-            "ecr:PutImage",
-            "ecr:InitiateLayerUpload",
-            "ecr:UploadLayerPart",
-            "ecr:CompleteLayerUpload",
-            "ecr:CreateRepository",
-            "ecr:DescribeRepositories"
-          ]
-          resources = ["*"]
-        }
-        ssmPermissions = {
-          actions = [
-            "ssm:GetParameter",
-            "ssm:GetParameters",
-            "ssm:GetParametersByPath"
-          ]
-          resources = var.github_app_ssm_param_arns
-        }
-        kmsPermissions = {
-          actions = [
-            "kms:Decrypt"
-          ]
-          resources = var.github_app_ssm_param_arns
-        }
-      }
+      iam = local.runner_iam
     }
   }
 }
 
 module "webhook" {
-  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.4.1"
+  source = "git@github.com:jkim-mlops/terraform-modules.git//modules/docker?ref=0.5.0"
 
-  image_name    = "${var.name}-webhook"
-  image_tag     = var.webhook_image_tag
-  build_context = "${path.module}/images/webhook"
-  platform      = "linux/${var.architecture}"
+  image_name          = "${var.name}-webhook"
+  image_tag           = var.webhook_image_tag
+  build_context       = "${path.module}/images/webhook"
+  platform            = "linux/${var.architecture}"
+  build_hash_excludes = local.image_build_hash_excludes
 }
 
 module "lambda" {
@@ -127,13 +173,16 @@ module "lambda" {
   architectures  = [var.architecture]
 
   environment_variables = {
-    WEBHOOK_EVENTS         = jsonencode(var.webhook_events)
-    RUNNER_TASK_ARN        = module.ecs.task_definitions[module.runner.image_name].arn
-    RUNNER_TASK_NAME       = module.runner.image_name
-    ECS_CLUSTER            = module.ecs.cluster.id
-    ECS_SUBNET_IDS         = jsonencode(module.vpc.private_subnet_ids)
-    ECS_SECURITY_GROUP_IDS = jsonencode([module.ecs.security_group.id])
-    LAUNCH_TYPE            = "FARGATE"
+    WEBHOOK_EVENTS           = jsonencode(var.webhook_events)
+    FARGATE_RUNNER_TASK_ARN  = module.ecs.task_definitions[module.runner.image_name].arn
+    FARGATE_RUNNER_TASK_NAME = module.runner.image_name
+    DIND_RUNNER_TASK_ARN     = module.ecs.task_definitions[module.dind.image_name].arn
+    DIND_RUNNER_TASK_NAME    = module.dind.image_name
+    MI_CAPACITY_PROVIDER     = module.ecs.managed_instances_capacity_provider
+    ECS_CLUSTER              = module.ecs.cluster.id
+    ECS_SUBNET_IDS           = jsonencode(module.vpc.private_subnet_ids)
+    ECS_SECURITY_GROUP_IDS   = jsonencode([module.ecs.security_group.id])
+    LAUNCH_TYPE              = "FARGATE"
   }
   depends_on = [module.webhook]
 }

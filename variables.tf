@@ -12,6 +12,11 @@ variable "webhook_image_tag" {
   description = "Tag for the webhook Docker image"
   type        = string
 }
+
+variable "dind_image_tag" {
+  description = "Tag for the Docker-in-Docker runner image"
+  type        = string
+}
 variable "architecture" {
   description = "ECS instance architecture (e.g., arm64, x86_64)"
   type        = string

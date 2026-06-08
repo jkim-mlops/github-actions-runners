@@ -125,7 +125,7 @@ resource "aws_lambda_function" "this" {
   image_uri     = var.image_uri
 
   image_config {
-    command = ["lambda.handler"]
+    command = ["webhook.handler"]
   }
 
   environment {

@@ -52,13 +52,13 @@ RUN useradd -m -d /runner runneruser && \
 WORKDIR /runner
 
 # Copy scripts
-COPY setup-runner.py /runner/setup-runner.py
+COPY setup_runner.py /runner/setup_runner.py
 COPY fetch-runner.sh /runner/fetch-runner.sh
-RUN chmod +x /runner/setup-runner.py /runner/fetch-runner.sh && \
-    chown runneruser:runneruser /runner/setup-runner.py /runner/fetch-runner.sh
+RUN chmod +x /runner/setup_runner.py /runner/fetch-runner.sh && \
+    chown runneruser:runneruser /runner/setup_runner.py /runner/fetch-runner.sh
 
 # Switch to non-root user
 USER runneruser
 
 # Ensure conda environment is activated before running the script
-CMD ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate runner && python /runner/setup-runner.py"]
+CMD ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate runner && python /runner/setup_runner.py"]

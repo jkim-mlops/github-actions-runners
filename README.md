@@ -6,8 +6,6 @@ End-to-end deployment of self-hosted GitHub Actions runners to do builds on ECS 
 ## Features
 * Support for secure, cost-efficient conda package builds.
 
-https://github.com/user-attachments/assets/37918a08-233a-45d4-8ff3-93d21f0643e0
-
 ## Inputs
 
 | Name | Description | Type | Default | Required |
@@ -15,6 +13,7 @@ https://github.com/user-attachments/assets/37918a08-233a-45d4-8ff3-93d21f0643e0
 | <a name="input_architecture"></a> [architecture](#input\_architecture) | ECS instance architecture (e.g., arm64, x86\_64) | `string` | n/a | yes |
 | <a name="input_cidr_block"></a> [cidr\_block](#input\_cidr\_block) | The CIDR block for the VPC. | `string` | n/a | yes |
 | <a name="input_cpu"></a> [cpu](#input\_cpu) | CPU units for the container (1024 = 1 vCPU) | `number` | n/a | yes |
+| <a name="input_dind_image_tag"></a> [dind\_image\_tag](#input\_dind\_image\_tag) | Tag for the Docker-in-Docker runner image | `string` | n/a | yes |
 | <a name="input_github_app_client_id_param"></a> [github\_app\_client\_id\_param](#input\_github\_app\_client\_id\_param) | SSM parameter name for GitHub App client ID | `string` | n/a | yes |
 | <a name="input_github_app_installation_id"></a> [github\_app\_installation\_id](#input\_github\_app\_installation\_id) | GitHub App installation ID to be passed to the runner container | `string` | n/a | yes |
 | <a name="input_github_app_private_key_param"></a> [github\_app\_private\_key\_param](#input\_github\_app\_private\_key\_param) | SSM parameter name for GitHub App private key | `string` | n/a | yes |
@@ -39,11 +38,12 @@ No outputs.
 | Name | Source | Version |
 |------|--------|---------|
 | <a name="module_api_gateway"></a> [api\_gateway](#module\_api\_gateway) | ./modules/api_gateway | n/a |
-| <a name="module_ecs"></a> [ecs](#module\_ecs) | git@github.com:jkim-mlops/terraform-modules.git//modules/ecs | 0.2.0 |
+| <a name="module_dind"></a> [dind](#module\_dind) | git@github.com:jkim-mlops/terraform-modules.git//modules/docker | feat/ec2-dind |
+| <a name="module_ecs"></a> [ecs](#module\_ecs) | git@github.com:jkim-mlops/terraform-modules.git//modules/ecs | feat/ec2-dind |
 | <a name="module_lambda"></a> [lambda](#module\_lambda) | ./modules/lambda | n/a |
-| <a name="module_runner"></a> [runner](#module\_runner) | git@github.com:jkim-mlops/terraform-modules.git//modules/docker | 0.1.2 |
-| <a name="module_vpc"></a> [vpc](#module\_vpc) | git@github.com:jkim-mlops/terraform-modules.git//modules/vpc | 0.2.0 |
-| <a name="module_webhook"></a> [webhook](#module\_webhook) | git@github.com:jkim-mlops/terraform-modules.git//modules/docker | 0.2.0 |
+| <a name="module_runner"></a> [runner](#module\_runner) | git@github.com:jkim-mlops/terraform-modules.git//modules/docker | feat/ec2-dind |
+| <a name="module_vpc"></a> [vpc](#module\_vpc) | git@github.com:jkim-mlops/terraform-modules.git//modules/vpc | 0.4.1 |
+| <a name="module_webhook"></a> [webhook](#module\_webhook) | git@github.com:jkim-mlops/terraform-modules.git//modules/docker | feat/ec2-dind |
 
 ## Requirements
 

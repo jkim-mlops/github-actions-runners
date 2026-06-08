@@ -1,7 +1,8 @@
 import json
 import hashlib
 import hmac
-from typing import Any, Dict, List, Set
+import uuid
+from typing import Any, Dict, List, NamedTuple, Set
 import boto3
 from aws_lambda_powertools.event_handler import (
     APIGatewayRestResolver,
@@ -18,12 +19,15 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     webhook_secret_ssm_param: str = Field(default=...)
     webhook_events: str = Field(default=...)
-    runner_task_arn: str = Field(default=...)
-    runner_task_name: str = Field(default=...)
+    fargate_runner_task_arn: str = Field(default=...)
+    fargate_runner_task_name: str = Field(default=...)
     ecs_cluster: str = Field(default=...)
     ecs_subnet_ids: str = Field(default=...)
     ecs_security_group_ids: str = Field(default=...)
     launch_type: str = Field(default=...)
+    dind_runner_task_arn: str = Field(default=...)
+    dind_runner_task_name: str = Field(default=...)
+    mi_capacity_provider: str = Field(default=...)
 
     @property
     def events(self) -> Set[str]:
@@ -51,6 +55,82 @@ def get_webhook_secret():
 
 
 WEBHOOK_SECRET = get_webhook_secret()
+
+
+def extract_labels(body: Dict[str, Any]) -> List[str]:
+    """Return the runner labels requested by a workflow_job event."""
+    return body.get("workflow_job", {}).get("labels", [])
+
+
+def should_handle_action(action: Any) -> bool:
+    """Launch a runner only for a freshly queued workflow_job.
+
+    (Earlier we also launched on "completed" to allow reruns, but that spawned
+    a duplicate task per job.)
+    """
+    return action == "queued"
+
+
+class Target(NamedTuple):
+    """The ECS task a webhook event should launch."""
+
+    task_arn: str
+    task_name: str
+    use_mi: bool  # True -> Managed Instances (DinD); False -> Fargate
+
+
+def select_target(labels: List[str]) -> Target:
+    """Route docker-labeled jobs to the DinD runner, everything else to Fargate."""
+    if "docker" in labels:
+        return Target(settings.dind_runner_task_arn, settings.dind_runner_task_name, True)
+    return Target(settings.fargate_runner_task_arn, settings.fargate_runner_task_name, False)
+
+
+def build_run_task_kwargs(target: Target, repo_owner: str, repo_name: str) -> Dict[str, Any]:
+    """Assemble ecs.run_task kwargs for the selected runner target.
+
+    Each runner gets a unique label so GitHub's matcher keeps dispatching to
+    idle ephemeral runners (community discussion #120813); the DinD runner also
+    advertises ``docker`` so docker-labeled jobs route to it.
+    """
+    label_parts = ["self-hosted"]
+    if target.use_mi:
+        label_parts.append("docker")
+    label_parts.append(uuid.uuid4().hex[:8])
+    runner_labels = ",".join(label_parts)
+
+    kwargs: Dict[str, Any] = {
+        "cluster": settings.ecs_cluster,
+        "taskDefinition": target.task_arn,
+        "count": 1,
+        "overrides": {
+            "containerOverrides": [
+                {
+                    "name": target.task_name,  # must match the container name in the task def
+                    "environment": [
+                        {"name": "GITHUB_REPO_OWNER", "value": repo_owner},
+                        {"name": "GITHUB_REPO_NAME", "value": repo_name},
+                        {"name": "RUNNER_LABELS", "value": runner_labels},
+                    ],
+                }
+            ]
+        },
+    }
+
+    # awsvpc network mode requires task networking for both launch paths.
+    awsvpc = {
+        "subnets": settings.subnet_ids,
+        "securityGroups": settings.security_group_ids,
+    }
+    if target.use_mi:
+        kwargs["capacityProviderStrategy"] = [{"capacityProvider": settings.mi_capacity_provider}]
+        # assignPublicIp is Fargate-only; MI instances reach the network via their subnet.
+        kwargs["networkConfiguration"] = {"awsvpcConfiguration": awsvpc}
+    else:
+        kwargs["launchType"] = settings.launch_type
+        kwargs["networkConfiguration"] = {"awsvpcConfiguration": {**awsvpc, "assignPublicIp": "ENABLED"}}
+
+    return kwargs
 
 
 @app.exception_handler(ValueError)
@@ -86,6 +166,18 @@ def verify_signature(payload_body: bytes, secret_token: str, signature_header: s
         raise ValueError("Request signatures didn't match!")
 
 
+def launch_runner(body: Dict[str, Any]) -> Dict[str, Any]:
+    """Launch the ECS runner task that matches the event's requested labels."""
+    repo_owner = body.get("repository", {}).get("owner", {}).get("login")
+    repo_name = body.get("repository", {}).get("name")
+
+    target = select_target(extract_labels(body))
+    kwargs = build_run_task_kwargs(target, repo_owner, repo_name)
+    response = ecs.run_task(**kwargs)
+    logger.debug(response)
+    return response
+
+
 @app.post("/webhook")
 def handle_github_webhook():
     # Only accept workflow_job events
@@ -98,43 +190,14 @@ def handle_github_webhook():
     # Parse repo_owner and repo_name from event body (assume JSON payload)
     body = app.current_event.json_body
 
-    # Only process workflow_job events with action "queued"
+    # Only a freshly queued workflow_job should launch a runner.
     if event_type == "workflow_job":
         action = body.get("action")
-        if action not in ("queued", "completed"):
+        if not should_handle_action(action):
             logger.info(f"Ignoring workflow_job event with action: {action}")
             return {"message": f"Ignored workflow_job action: {action}"}
 
-    repo_owner = body.get("repository", {}).get("owner", {}).get("login")
-    repo_name = body.get("repository", {}).get("name")
-
-    response = ecs.run_task(
-        cluster=settings.ecs_cluster,
-        launchType="FARGATE",
-        taskDefinition=settings.runner_task_arn,
-        count=1,
-        networkConfiguration={
-            "awsvpcConfiguration": {
-                "subnets": settings.subnet_ids,
-                "securityGroups": settings.security_group_ids,
-                "assignPublicIp": "ENABLED",
-            }
-        },
-        overrides={
-            "containerOverrides": [
-                {
-                    "name": settings.runner_task_name,  # must match container name in task def
-                    "environment": [
-                        {"name": "GITHUB_REPO_OWNER", "value": repo_owner},
-                        {"name": "GITHUB_REPO_NAME", "value": repo_name},
-                    ],
-                }
-            ]
-        },
-        # capacityProviderStrategy=[{"capacityProvider": "FARGATE", "weight": 1}],
-    )
-    logger.debug(response)
-
+    launch_runner(body)
     return {"message": "ECS task launched"}
 
 
