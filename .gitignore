@@ -49,3 +49,12 @@ terraform.rc
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# Terraform plan output (terraform plan -out / terraform show -json)
+*tfplan*
+plan.json
+
+# terravision / diagram artifacts (terraform graph, terravision draw [--debug])
+graph.dot
+*.dot.png
+tfdata.json
